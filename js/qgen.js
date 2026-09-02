@@ -170,7 +170,9 @@
     const n = rnd(T + 3, T + 20);
     const rem = n % T, pos = rem === 0 ? T : rem;
     const ansSym = letters[pos - 1];
-    const optList = shuffle(letters.slice());
+    // 固定 4 个选项：正确项 + 从其余字母池补足 3 个干扰项
+    const pool = "ABCDEF".split("").filter(c => c !== ansSym);
+    const optList = shuffle([ansSym].concat(shuffle(pool).slice(0, 3)));
     const o = { opts: optList, ans: optList.indexOf(ansSym) };
     const q = `一串珠子按 ${letters.join("")} 的顺序不断重复排列。第 ${n} 个珠子是什么？`;
     const exp = `周期长 = ${T}。${n} ÷ ${T} = ${Math.floor(n / T)} …… ${rem === 0 ? T : rem}，余数定位周期里第 ${pos} 个 = ${ansSym}。`;

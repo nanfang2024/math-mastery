@@ -12,11 +12,28 @@
   function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
   // opts(ans, make1, make2, make3) - 由正确答和3个干扰项生成4个互异选项
+  // 干扰项不足时：数值答案 ±k 补位；字符串答案把其中第一个数字 ±k（如 "5个"→"6个"）
+  function bumpStr(s, k) {
+    const m = String(s).match(/-?\d+/);
+    if (!m) return null;
+    return String(s).replace(m[0], String(parseInt(m[0], 10) + k));
+  }
   function opts(ans, make1, make2, make3) {
-    const arr = [String(ans), String(make1()), String(make2()), String(make3())];
-    const unique = [...new Set(arr)];
-    while (unique.length < 4) { unique.push(String(ans + unique.length)); }
-    return { opts: unique.map(String), ans: unique.indexOf(String(ans)) };
+    const set = new Set([String(ans)]);
+    [make1, make2, make3].forEach(mk => {
+      if (typeof mk === "function") { const v = String(mk()); if (v !== String(ans) && !set.has(v)) set.add(v); }
+    });
+    let k = 1;
+    while (set.size < 4 && k < 50) {
+      const num = Number(ans);
+      let v = null;
+      if (Number.isFinite(num)) v = String(num + k);
+      else { v = (k % 2 ? bumpStr(ans, Math.ceil(k / 2)) : bumpStr(ans, -Math.ceil(k / 2))); }
+      if (v != null && !set.has(v)) set.add(v);
+      k++;
+    }
+    const arr = shuffle([...set]);
+    return { opts: arr, ans: arr.indexOf(String(ans)) };
   }
 
   function Q(q, optsObj, level, explain, point, fig) {
@@ -68,18 +85,18 @@
       let q, ans, o, exp;
       if (type === 0) {
         // 合并同类项
-        const a1 = rnd(1, 8), a2 = rnd(1, 8);
+        const a1 = rnd(2, 8), a2 = rnd(2, 8);
         const sum = a1 + a2;
         o = opts(`${sum}x`, () => `${a1 + a2 + 1}x`, () => `${a1}x`, () => `${a2}x`);
         q = `${a1}x + ${a2}x = ？`;
-        exp = `同类项合并：系数相加 ${a1} + ${a2} = ${sum}，字母不变。`;
+        exp = `同类项合并：系数相加 ${a1} + ${a2} = ${sum}，字母不变，得 ${sum}x。`;
       } else if (type === 1) {
         // 去括号
         const a = rnd(1, 5);
         const b = rnd(1, 9);
-        o = opts(`-${a}x + ${b}`, () => `-${a}x - ${b}`, () => `${a}x + ${b}`, () => `${a}x - ${b}`);
+        o = opts(`−${a}x + ${b}`, () => `−${a}x − ${b}`, () => `${a}x + ${b}`, () => `${a}x − ${b}`);
         q = `−(${a}x − ${b}) = ？`;
-        exp = `括号前是负号，去括号后各项变号：−${a}x + ${b}。`;
+        exp = `括号前是负号，去括号后各项变号：−(${a}x − ${b}) = −${a}x + ${b}。`;
       } else {
         // 系数识别
         const a = rnd(2, 9);
@@ -149,22 +166,23 @@
       const type = i % 2;
       let q, ans, o, exp;
       if (type === 0) {
-        // 解不等式
+        // 解不等式（正系数）
         const x = rnd(2, 8);
         const a = rnd(2, 5);
         const b = rnd(1, 10);
         const c = a * x + b;
         o = opts(`x < ${x}`, () => `x > ${x}`, () => `x ≤ ${x}`, () => `x ≥ ${x}`);
         q = `解不等式 ${a}x + ${b} < ${c}，解集是？`;
-        exp = `移项：${a}x < ${c} − ${b} = ${c - b}，x < ${c - b} ÷ ${a} = ${x}。`;
+        exp = `移项：${a}x < ${c} − ${b} = ${c - b}，系数化为 1：x < ${x}，即解集为 x < ${x}。`;
       } else {
-        // 判断不等号方向
-        const a = rnd(1, 5);
+        // 负系数不等式（考察不等号变向）
+        const x = rnd(2, 8);
+        const a = rnd(2, 4);
         const b = rnd(1, 9);
-        const c = a * rnd(1, 3) + b + 5;
-        o = opts(`x < ${(c - b) / a}`, () => `x > ${(c - b) / a}`, () => `x < ${((c - b) / a) + 1}`, () => `x > ${((c - b) / a) - 1}`);
-        q = `解不等式 ${a}x + ${b} < ${c}，解集是？`;
-        exp = `移项：${a}x < ${c - b}，x < ${(c - b) / a}。`;
+        const c = -a * x + b;
+        o = opts(`x > ${x}`, () => `x < ${x}`, () => `x > ${x + 1}`, () => `x < ${x - 1}`);
+        q = `解不等式 −${a}x + ${b} < ${c}，解集是？`;
+        exp = `移项：−${a}x < ${c} − ${b} = ${c - b}，两边除以 −${a}，不等号改变方向：x > ${x}，即解集为 x > ${x}。`;
       }
       results.push(Q(q, o, "基础", exp, "一元一次不等式"));
     }
@@ -180,32 +198,37 @@
       const type = i % 3;
       let q, ans, o, exp;
       if (type === 0) {
-        // 代入法
+        // 代入法（系数为 1 时省略，保证方程组有唯一解）
         const x = rnd(1, 8);
         const y = rnd(1, 8);
-        const a1 = rnd(1, 3), b1 = rnd(1, 3);
+        let a1, b1, a2, b2;
+        do {
+          a1 = rnd(1, 3); b1 = rnd(1, 3); a2 = rnd(1, 3); b2 = rnd(1, 3);
+        } while (a1 * b2 - a2 * b1 === 0);
         const c1 = a1 * x + b1 * y;
-        const a2 = rnd(1, 3), b2 = rnd(1, 3);
         const c2 = a2 * x + b2 * y;
-        o = opts(`${x},${y}`, () => `${y},${x}`, () => `${x + 1},${y}`, () => `${x},${y + 1}`);
-        q = `方程组 ${a1}x + ${b1}y = ${c1} 与 ${a2}x + ${b2}y = ${c2} 的解是？`;
-        exp = `代入检验：${a1}×${x} + ${b1}×${y} = ${c1}，${a2}×${x} + ${b2}×${y} = ${c2}，解为 x=${x}, y=${y}。`;
+        const cf = (v, s) => v === 1 ? s : `${v}${s}`;
+        o = opts(`x=${x}, y=${y}`, () => `x=${y}, y=${x}`, () => `x=${x + 1}, y=${y}`, () => `x=${x}, y=${y + 1}`);
+        q = `方程组 ${cf(a1, "x")} + ${cf(b1, "y")} = ${c1} 与 ${cf(a2, "x")} + ${cf(b2, "y")} = ${c2} 的解是？`;
+        exp = `代入检验：${a1}×${x} + ${b1}×${y} = ${c1}，${a2}×${x} + ${b2}×${y} = ${c2}，故解为 x=${x}, y=${y}。`;
       } else if (type === 1) {
         // 加减消元
         const x = rnd(1, 6);
         const y = rnd(1, 6);
         const c1 = 2 * x + 3 * y;
         const c2 = 3 * x - 2 * y;
-        o = opts(`${x},${y}`, () => `${y},${x}`, () => `${x + 1},${y}`, () => `${x},${y + 1}`);
+        o = opts(`x=${x}, y=${y}`, () => `x=${y}, y=${x}`, () => `x=${x + 1}, y=${y}`, () => `x=${x}, y=${y + 1}`);
         q = `方程组 2x + 3y = ${c1} 与 3x − 2y = ${c2} 的解是？`;
-        exp = `加减消元：×2 + ×3 消 y，得 x = ${x}，代入得 y = ${y}。`;
+        exp = `加减消元：第一式 ×2 加第二式 ×3，消去 y 得 13x = ${2 * c1 + 3 * c2}，x = ${x}，代回得 y = ${y}，故解为 x=${x}, y=${y}。`;
       } else {
-        // 应用题
-        const a = rnd(1, 5), b = rnd(1, 5);
+        // 应用题（保证苹果严格多于梨）
+        const a = rnd(3, 6);
+        const b = rnd(1, a - 1);
         const total = a + b;
-        o = opts(`${a}个苹果`, () => `${b}个苹果`, () => `${total}个苹果`, () => `${Math.abs(a - b)}个苹果`);
-        q = `买苹果和梨共 ${total} 个，苹果比梨多 ${a > b ? a - b : b - a} 个，苹果有几个？`;
-        exp = `设苹果 x 个：x + (x − ${a > b ? a - b : b - a}) = ${total}，解得 x = ${a}。`;
+        const diff = a - b;
+        o = opts(`${a}个`, () => `${b}个`, () => `${total}个`, () => `${diff}个`);
+        q = `买苹果和梨共 ${total} 个，苹果比梨多 ${diff} 个，苹果有几个？`;
+        exp = `设苹果 x 个、梨 y 个：x + y = ${total}，x − y = ${diff}，两式相加得 2x = ${total} + ${diff} = ${total + diff}，x = ${a}，即苹果有 ${a}个。`;
       }
       results.push(Q(q, o, type < 2 ? "基础" : "进阶", exp, "二元一次方程组"));
     }
@@ -328,26 +351,24 @@
       const type = i % 3;
       let q, ans, o, exp;
       if (type === 0) {
-        // 相似比计算
+        // 相似比计算（side1 必须是 side2 的 ratio 倍）
         const ratio = rnd(2, 5);
-        const side1 = ratio * rnd(2, 5);
         const side2 = rnd(2, 5);
+        const side1 = ratio * side2;
         o = opts(ratio + ":1", () => "1:" + ratio, () => (ratio + 1) + ":1", () => ratio + ":" + (ratio + 1));
         q = `两个相似三角形对应边分别为 ${side1}cm 和 ${side2}cm，相似比是？`;
-        exp = `相似比 = ${side1} : ${side2} = ${ratio} : 1。`;
+        exp = `相似比 = ${side1}:${side2} = ${ratio}:1。`;
       } else if (type === 1) {
         // 面积比
         const ratio = rnd(2, 4);
-        const area1 = ratio * ratio * rnd(1, 5);
-        const area2 = rnd(1, 5);
         o = opts((ratio * ratio) + ":1", () => ratio + ":1", () => "1:" + (ratio * ratio), () => "1:1");
         q = `相似比为 ${ratio}:1 的两个三角形，面积比是？`;
-        exp = `面积比 = 相似比的平方 = ${ratio}² : 1² = ${ratio * ratio} : 1。`;
+        exp = `面积比 = 相似比的平方 = ${ratio}²:1² = ${ratio * ratio}:1。`;
       } else {
-        // 平行线判定相似
-        o = opts("平行线分线段成比例", () => "全等三角形", () => "勾股定理", () => "三角函数");
-        q = `证明两个三角形相似，最常用的方法是？`;
-        exp = `平行线截得的三角形与原三角形相似，利用平行线分线段成比例定理。`;
+        // 相似判定（AA）
+        o = opts("两角对应相等（AA）", () => "三边对应相等", () => "两边对应成比例且夹角相等（SAS）", () => "面积相等");
+        q = `两个三角形中两对角分别对应相等，判定它们相似的依据是？`;
+        exp = `相似判定定理：两角分别对应相等的两个三角形相似，即两角对应相等（AA）。`;
       }
       results.push(Q(q, o, "基础", exp, "相似三角形"));
     }
@@ -365,21 +386,21 @@
       if (type === 0) {
         // 已知两直角边求斜边（勾股数）
         const triples = [[3,4,5],[6,8,10],[5,12,13],[8,15,17],[9,12,15],[7,24,25]];
-        const [a, b, c] = triples[i % triples.length];
+        const [a, b, c] = pick(triples);
         o = opts(c, () => a + b, () => Math.abs(a - b), () => a * b);
         q = `直角三角形两直角边为 ${a} 和 ${b}，斜边为？`;
         exp = `由勾股定理：c² = ${a}² + ${b}² = ${a*a} + ${b*b} = ${a*a + b*b}，c = ${c}。`;
       } else if (type === 1) {
         // 已知斜边和一直角边求另一直角边
         const triples = [[3,4,5],[6,8,10],[5,12,13],[8,15,17]];
-        const [a, b, c] = triples[i % triples.length];
+        const [a, b, c] = pick(triples);
         o = opts(b, () => c - a, () => c + a, () => a * b / c);
         q = `直角三角形斜边 ${c}，一直角边 ${a}，另一直角边为？`;
         exp = `b² = c² − a² = ${c*c} − ${a*a} = ${c*c - a*a}，b = ${b}。`;
       } else {
         // 判断直角三角形
         const triples = [[3,4,5],[6,8,10],[5,12,13]];
-        const [a, b, c] = triples[i % triples.length];
+        const [a, b, c] = pick(triples);
         o = opts("是直角三角形", () => "不是直角三角形", () => "无法判断", () => "等边三角形");
         q = `三边长为 ${a}, ${b}, ${c}，这个三角形是？`;
         exp = `${a}² + ${b}² = ${a*a} + ${b*b} = ${a*a + b*b} = ${c*c}，满足勾股定理，是直角三角形。`;
@@ -432,8 +453,8 @@
       const type = i % 4;
       let q, ans, o, exp;
       if (type === 0) {
-        // 圆周角定理
-        const central = rnd(60, 120);
+        // 圆周角定理（圆心角取偶数，保证圆周角为整数）
+        const central = rnd(30, 60) * 2;
         const inscribed = central / 2;
         o = opts(`${inscribed}°`, () => `${central}°`, () => `${90 - inscribed}°`, () => `${180 - central}°`);
         q = `圆心角为 ${central}°，同弧所对的圆周角是？`;
@@ -441,15 +462,15 @@
       } else if (type === 1) {
         // 圆的周长
         const r = rnd(2, 10);
-        o = opts(`2${r}π`, () => `${r}π`, () => `${r*r}π`, () => `${4*r}π`);
+        o = opts(`${2 * r}π`, () => `${r}π`, () => `${r * r}π`, () => `${2 * r + 2}π`);
         q = `半径为 ${r} 的圆，周长为？`;
-        exp = `周长 C = 2πr = 2 × π × ${r} = 2${r}π。`;
+        exp = `周长 C = 2πr = 2 × π × ${r} = ${2 * r}π。`;
       } else if (type === 2) {
         // 圆的面积
         const r = rnd(2, 10);
-        o = opts(`${r*r}π`, () => `2${r}π`, () => `${r}π`, () => `${4*r}π`);
+        o = opts(`${r * r}π`, () => `${2 * r}π`, () => `${r}π`, () => `${r * r + 2}π`);
         q = `半径为 ${r} 的圆，面积为？`;
-        exp = `面积 S = πr² = π × ${r}² = ${r*r}π。`;
+        exp = `面积 S = πr² = π × ${r}² = ${r * r}π。`;
       } else {
         // 弦与直径
         o = opts("直径", () => "弦", () => "切线", () => "弧");
@@ -470,13 +491,14 @@
       const type = i % 4;
       let q, ans, o, exp;
       if (type === 0) {
-        // 斜率计算
+        // 斜率计算（保证斜率为整数）
         const x1 = rnd(0, 5);
         const y1 = rnd(0, 5);
-        const x2 = x1 + rnd(1, 5);
-        const y2 = y1 + rnd(1, 5);
-        const slope = (y2 - y1) / (x2 - x1);
-        o = opts(slope, () => slope + 1, () => slope - 1, () => (y1 - y2) / (x1 - x2));
+        const dx = rnd(1, 5);
+        const slope = rnd(1, 3);
+        const x2 = x1 + dx;
+        const y2 = y1 + slope * dx;
+        o = opts(slope, () => slope + 1, () => slope - 1, () => -slope);
         q = `点 (${x1},${y1}) 和 (${x2},${y2}) 连线的斜率是？`;
         exp = `斜率 k = (y₂−y₁)/(x₂−x₁) = (${y2}−${y1})/(${x2}−${x1}) = ${slope}。`;
       } else if (type === 1) {
@@ -484,7 +506,7 @@
         const k = rnd(1, 3);
         const b = rnd(-5, 5);
         o = opts(b, () => k, () => 0, () => -b);
-        q = `一次函数 y = ${k}x + ${b}，y 轴截距是？`;
+        q = `一次函数 y = ${k}x${b === 0 ? "" : b > 0 ? " + " + b : " − " + (-b)}，y 轴截距是？`;
         exp = `y 轴截距是 x=0 时的 y 值，即 b = ${b}。`;
       } else if (type === 2) {
         // 函数值
@@ -516,10 +538,10 @@
       const type = i % 3;
       let q, ans, o, exp;
       if (type === 0) {
-        // 求 k 值
-        const k = rnd(2, 12);
+        // 求 k 值（先定点再算 k，保证坐标为整数）
         const x = rnd(1, 5);
-        const y = k / x;
+        const y = rnd(1, 5);
+        const k = x * y;
         o = opts(k, () => k * 2, () => k / 2, () => x + y);
         q = `反比例函数 y = k/x 经过点 (${x},${y})，k 的值为？`;
         exp = `k = x × y = ${x} × ${y} = ${k}。`;
@@ -530,11 +552,11 @@
         q = `反比例函数 y = ${k}/x，图像在？`;
         exp = `k = ${k} > 0，图像在第一、三象限。`;
       } else {
-        // 函数值
-        const k = rnd(2, 10);
+        // 函数值（k 取 x 的倍数，保证 y 为整数）
         const x = rnd(1, 5);
-        const y = k / x;
-        o = opts(y, () => k + x, () => k - x, () => x / k);
+        const y = rnd(1, 5);
+        const k = x * y;
+        o = opts(y, () => k + x, () => k - x, () => x + y);
         q = `反比例函数 y = ${k}/x，当 x = ${x} 时，y = ？`;
         exp = `y = ${k} ÷ ${x} = ${y}。`;
       }
@@ -552,37 +574,44 @@
       const type = i % 5;
       let q, ans, o, exp;
       if (type === 0) {
-        // 顶点坐标
+        // 顶点坐标（规范处理负数符号）
         const h = rnd(-3, 3);
         const k = rnd(-3, 3);
+        const xs = h === 0 ? "x" : (h > 0 ? `x − ${h}` : `x + ${-h}`);
+        const ks = k === 0 ? "" : (k > 0 ? ` + ${k}` : ` − ${-k}`);
         o = opts(`(${h},${k})`, () => `(${-h},${k})`, () => `(${h},${-k})`, () => `(${-h},${-k})`);
-        q = `二次函数 y = (x − ${h})² + ${k} 的顶点坐标是？`;
-        exp = `顶点式为 y = a(x−h)² + k，顶点为 (${h},${k})。`;
+        q = `二次函数 y = (${xs})²${ks} 的顶点坐标是？`;
+        exp = `顶点式 y = (x − h)² + k 的顶点为 (h, k)，这里顶点是 (${h},${k})。`;
       } else if (type === 1) {
         // 开口方向
         const a = rnd(1, 5) * (Math.random() < 0.5 ? 1 : -1);
         o = opts(a > 0 ? "开口向上" : "开口向下", () => a > 0 ? "开口向下" : "开口向上", () => "无法判断", () => "开口水平");
-        q = `二次函数 y = ${a}x² + 2x + 1，开口方向？`;
-        exp = `a = ${a} ${a > 0 ? ">" : "<"} 0，开口${a > 0 ? "向上" : "向下"}。`;
+        q = `二次函数 y = ${a < 0 ? "−" + (-a) : a}x² + 2x + 1，开口方向？`;
+        exp = `a = ${a < 0 ? "−" + (-a) : a} ${a > 0 ? ">" : "<"} 0，开口${a > 0 ? "向上" : "向下"}。`;
       } else if (type === 2) {
         // 对称轴
         const h = rnd(-3, 3);
+        const xs = h === 0 ? "x" : (h > 0 ? `x − ${h}` : `x + ${-h}`);
         o = opts(`x = ${h}`, () => `x = ${-h}`, () => `y = ${h}`, () => `y = ${-h}`);
-        q = `二次函数 y = (x + ${h > 0 ? -h : h})² 的对称轴是？`;
-        exp = `对称轴为 x = ${h}。`;
+        q = `二次函数 y = (${xs})² 的对称轴是？`;
+        exp = `y = (x − h)² 的对称轴为 x = h，这里 h = ${h}，对称轴为 x = ${h}。`;
       } else if (type === 3) {
         // 与 y 轴交点
         const c = rnd(-5, 5);
+        const cs = c === 0 ? "" : (c > 0 ? ` + ${c}` : ` − ${-c}`);
         o = opts(`(0,${c})`, () => `(${c},0)`, () => `(0,0)`, () => `(1,${c})`);
-        q = `二次函数 y = x² + 2x + ${c}，与 y 轴交点是？`;
-        exp = `令 x = 0，y = ${c}，交点为 (0, ${c})。`;
+        q = `二次函数 y = x² + 2x${cs}，与 y 轴交点是？`;
+        exp = `令 x = 0，y = ${c}，交点为 (0,${c})。`;
       } else {
-        // 最值
-        const a = -Math.abs(rnd(1, 3));
+        // 最值（顶点式保证最大值恰为 k）
+        const a = -rnd(1, 3);
+        const h = rnd(-3, 3);
         const k = rnd(1, 5);
+        const xs = h === 0 ? "x" : (h > 0 ? `x − ${h}` : `x + ${-h}`);
+        const as = a === -1 ? "−" : "−" + (-a);
         o = opts(`最大值 ${k}`, () => `最小值 ${k}`, () => `最大值 ${-k}`, () => `无最值`);
-        q = `二次函数 y = ${a}x² + 2x + ${k + 1}，有最值吗？`;
-        exp = `a = ${a} < 0，开口向下，有最大值 ${k}。`;
+        q = `二次函数 y = ${as}(${xs})² + ${k} 的最大值是？`;
+        exp = `a = ${as} < 0，开口向下，顶点 (${h},${k}) 处取得最大值 ${k}。`;
       }
       results.push(Q(q, o, "基础", exp, "二次函数"));
     }

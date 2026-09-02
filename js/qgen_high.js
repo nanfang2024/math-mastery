@@ -10,11 +10,28 @@
   function pick(a) { return a[rnd(0, a.length - 1)]; }
   function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
 
+  // 干扰项不足时：数值答案 ±k 补位；字符串答案把其中第一个数字 ±k（如 "5个"→"6个"）
+  function bumpStr(s, k) {
+    const m = String(s).match(/-?\d+/);
+    if (!m) return null;
+    return String(s).replace(m[0], String(parseInt(m[0], 10) + k));
+  }
   function opts(ans, make1, make2, make3) {
-    const arr = [String(ans), String(make1()), String(make2()), String(make3())];
-    const unique = [...new Set(arr)];
-    while (unique.length < 4) { unique.push(String(ans + unique.length)); }
-    return { opts: unique.map(String), ans: unique.indexOf(String(ans)) };
+    const set = new Set([String(ans)]);
+    [make1, make2, make3].forEach(mk => {
+      if (typeof mk === "function") { const v = String(mk()); if (v !== String(ans) && !set.has(v)) set.add(v); }
+    });
+    let k = 1;
+    while (set.size < 4 && k < 50) {
+      const num = Number(ans);
+      let v = null;
+      if (Number.isFinite(num)) v = String(num + k);
+      else { v = (k % 2 ? bumpStr(ans, Math.ceil(k / 2)) : bumpStr(ans, -Math.ceil(k / 2))); }
+      if (v != null && !set.has(v)) set.add(v);
+      k++;
+    }
+    const arr = shuffle([...set]);
+    return { opts: arr, ans: arr.indexOf(String(ans)) };
   }
 
   function Q(q, optsObj, level, explain, point, fig) {
@@ -30,20 +47,19 @@
       const type = i % 4;
       let q, ans, o, exp;
       if (type === 0) {
-        // 集合运算
+        // 集合运算（A⊆B 需 |B| ≥ |A|，且 A∩B = A）
         const a = rnd(2, 5);
-        const b = rnd(2, 5);
-        const inter = Math.min(a, b);
-        o = opts(inter + "个", () => (a + b) + "个", () => Math.abs(a - b) + "个", () => "0个");
+        const b = a + rnd(0, 3);
+        o = opts(a + "个", () => b + "个", () => (a + b) + "个", () => "0个");
         q = `集合 A 有 ${a} 个元素，集合 B 有 ${b} 个元素，若 A⊆B，则 A∩B 有？`;
-        exp = `A⊆B 时 A∩B = A，有 ${a} 个元素。`;
+        exp = `A⊆B 时 A∩B = A，故 A∩B 有 ${a}个元素。`;
       } else if (type === 1) {
         // 子集个数
         const n = rnd(2, 4);
         const ansCount = Math.pow(2, n);
         o = opts(`${ansCount}个`, () => ansCount + n, () => ansCount - 1, () => n + "个");
         q = `集合有 ${n} 个元素，它的子集共有？`;
-        exp = `n 个元素的集合有 2ⁿ 个子集，2^${n} = ${ansCount} 个。`;
+        exp = `n 个元素的集合有 2ⁿ 个子集，2^${n} = ${ansCount}个。`;
       } else if (type === 2) {
         // 充分必要条件
         o = opts("充分不必要", () => "必要不充分", () => "充要", () => "既不充分也不必要");
@@ -106,13 +122,13 @@
       const type = i % 4;
       let q, ans, o, exp;
       if (type === 0) {
-        // 指数运算
-        const a = rnd(2, 4);
-        const m = rnd(1, 3);
-        const ansVal = a * m;
-        o = opts(`a^${ansVal}`, () => `a^${ansVal + 1}`, () => `a^${ansVal - 1}`, () => `${a * m}`);
-        q = `a^${m} · a^${m} = ？`;
-        exp = `同底数幂相乘，指数相加：a^${m} · a^${m} = a^${m + m} = a^${ansVal}。`;
+        // 指数运算（同底数幂相乘，指数相加）
+        const m1 = rnd(2, 4);
+        const m2 = rnd(2, 4);
+        const ansVal = m1 + m2;
+        o = opts(`a^${ansVal}`, () => `a^${m1 * m2}`, () => `a^${ansVal + 1}`, () => `a^${Math.abs(ansVal - 1)}`);
+        q = `a^${m1} · a^${m2} = ？`;
+        exp = `同底数幂相乘，指数相加：a^${m1} · a^${m2} = a^${m1 + m2} = a^${ansVal}。`;
       } else if (type === 1) {
         // 对数运算
         const base = rnd(2, 4);
@@ -122,11 +138,11 @@
         q = `log_${base}(${val}) = ？`;
         exp = `由对数定义：${base}^${ans} = ${val}，故 log_${base}(${val}) = ${ans}。`;
       } else if (type === 2) {
-        // 对数方程
+        // 对数方程（解是 base^ans）
         const base = rnd(2, 4);
         const ans = rnd(2, 5);
         const val = Math.pow(base, ans);
-        o = opts(ans, () => ans + 1, () => ans - 1, () => val);
+        o = opts(val, () => val + 1, () => val - 1, () => ans);
         q = `解方程 log_${base}(x) = ${ans}，x = ？`;
         exp = `x = ${base}^${ans} = ${val}。`;
       } else {
@@ -175,7 +191,7 @@
         exp = `基本的三角恒等式：sin²α + cos²α = 1。`;
       } else {
         // 诱导公式
-        o = opts("-sinα", () => "sinα", () => "cosα", () => "-cosα");
+        o = opts("sinα", () => "-sinα", () => "cosα", () => "-cosα");
         q = `sin(180° − α) = ？`;
         exp = `诱导公式：sin(180° − α) = sinα。`;
       }
@@ -298,12 +314,12 @@
         q = `数列 a_n = 2n + 1，第 ${n} 项 a_${n} = ？`;
         exp = `a_${n} = 2×${n} + 1 = ${an}。`;
       } else {
-        // 并项求和
+        // 并项求和：1+2−3+4−5+…+2n，从第 3 项起奇数项取负
         const n = rnd(2, 5);
-        const ans = n * (n + 1) / 2;
+        const ans = n + 2;
         o = opts(ans, () => ans + 1, () => ans - 1, () => n * n);
         q = `求和：1 + 2 − 3 + 4 − 5 + ... + ${2 * n} = ？`;
-        exp = `分组：(1+2)+(−3+4)+(−5+6)+... = ${n} 组，每组 1，和为 ${ans}。`;
+        exp = `从第 3 项起两两分组：(−3+4)+(−5+6)+…+(−${2 * n - 1}+${2 * n})，每组 1，共 ${n - 1} 组；总和 = 1 + 2 + ${n - 1} = ${ans}。`;
       }
       results.push(Q(q, o, "进阶", exp, "数列求和技巧"));
     }
@@ -367,19 +383,19 @@
       let q, ans, o, exp;
       if (type === 0) {
         // 正方体性质
-        o = opts("4个", () => "6个", () => "8个", () => "12个");
-        q = `正方体有 ${rnd(1, 8)} 个顶点，从每个顶点出发的棱有？`;
-        exp = `正方体每个顶点连接 3 条棱，但这里问的是从一个顶点出发的棱数 = 3。`;
+        o = opts("3条", () => "4条", () => "6条", () => "12条");
+        q = `正方体有 8 个顶点，从每个顶点出发的棱有？`;
+        exp = `正方体每个顶点处有 3 条棱相交，故从每个顶点出发的棱有 3条。`;
       } else if (type === 1) {
         // 三视图
         o = opts("正视图、侧视图、俯视图", () => "正视图、俯视图、剖视图", () => "正视图、侧视图、剖视图", () => "主视图、左视图、右视图");
         q = `三视图包括？`;
-        exp = `三视图：正视图（主视图）、侧视图（左视图）、俯视图。`;
+        exp = `三视图包括正视图、侧视图、俯视图（正视图又称主视图，侧视图又称左视图）。`;
       } else if (type === 2) {
         // 线面平行
         o = opts("线在面外且与面内一直线平行", () => "线与面内所有直线平行", () => "线与面内一直线垂直", () => "线在面内");
         q = `直线与平面平行的判定条件是？`;
-        exp = `线面平行判定：若平面外一直线与平面内一直线平行，则线面平行。`;
+        exp = `线面平行判定：平面外一直线与平面内一直线平行，则线面平行，即线在面外且与面内一直线平行。`;
       } else {
         // 面面垂直
         o = opts("一平面过另一平面的垂线", () => "两平面交线垂直", () => "两平面平行", () => "两平面相交");
@@ -400,11 +416,11 @@
       const type = i % 3;
       let q, ans, o, exp;
       if (type === 0) {
-        // 坐标计算
+        // 关于原点对称
         const x = rnd(1, 5), y = rnd(1, 5), z = rnd(1, 5);
-        o = opts(`(${x},${y},${z})`, () => `(${x},${z},${y})`, () => `(${y},${x},${z})`, () => `(-${x},-${y},-${z})`);
-        q = `空间点 P 的坐标为 (${x}, ${y}, ${z})，其坐标表示是？`;
-        exp = `空间直角坐标系中，点 P 的坐标为 (x, y, z)。`;
+        o = opts(`(-${x},-${y},-${z})`, () => `(${x},-${y},-${z})`, () => `(-${x},${y},-${z})`, () => `(${x},${y},-${z})`);
+        q = `空间点 P(${x}, ${y}, ${z}) 关于原点对称的点 P′ 的坐标是？`;
+        exp = `关于原点对称，三个坐标都变为相反数：P′(-${x},-${y},-${z})。`;
       } else if (type === 1) {
         // 向量坐标
         const ax = rnd(1, 5), ay = rnd(1, 5), az = rnd(1, 5);
@@ -412,12 +428,12 @@
         const dx = ax - bx, dy = ay - by, dz = az - bz;
         o = opts(`(${dx},${dy},${dz})`, () => `(${dx + 1},${dy},${dz})`, () => `(${ax + bx},${ay + by},${az + bz})`, () => `(${bx - ax},${by - ay},${bz - az})`);
         q = `向量 a=(${ax},${ay},${az}), b=(${bx},${by},${bz})，a−b=？`;
-        exp = `向量减法：(a₁−b₁, a₂−b₂, a₃−b₃) = (${dx},${dy},${dz})。`;
+        exp = `向量减法：对应坐标相减 = (${ax}−${bx},${ay}−${by},${az}−${bz}) = (${dx},${dy},${dz})。`;
       } else {
         // 法向量
         o = opts("(0,0,1)", () => "(1,0,0)", () => "(0,1,0)", () => "(1,1,1)");
         q = `平面 xOy 的法向量是？`;
-        exp = `xOy 平面的法向量垂直于该平面，可取 (0, 0, 1)。`;
+        exp = `xOy 平面的法向量垂直于该平面，可取 (0,0,1)。`;
       }
       results.push(Q(q, o, "基础", exp, "空间向量建系"));
     }
@@ -471,14 +487,13 @@
       } else if (type === 1) {
         // 导数应用（单调性）
         o = opts("f'(x) > 0", () => "f'(x) < 0", () => "f(x) > 0", () => "f(x) < 0");
-        q = `函数 f(x) 在区间 I 上单调递增的充要条件是？`;
-        exp = `f(x) 在 I 上单调递增 ⇔ f'(x) ≥ 0（在 I 上恒成立）。`;
+        q = `可导函数 f(x) 在区间 I 上单调递增的一个充分条件是？`;
+        exp = `f'(x) > 0 能推出 f(x) 单调递增（充分条件）；但递增时 f'(x) 也可能个别点为 0（如 f(x)=x³ 在 x=0 处），故不是必要条件。`;
       } else if (type === 2) {
         // 极值点
-        const a = rnd(1, 3);
-        o = opts(`f'(x) = 0 且 f''(x) ≠ 0`, () => "f(x) = 0", () => "f'(x) = 0", () => "f''(x) = 0");
-        q = `函数 f(x) 在 x₀ 处取得极值的必要条件是？`;
-        exp = `极值点必要条件是 f'(x₀) = 0（驻点），但不是充分条件。`;
+        o = opts(`f'(x₀) = 0`, () => "f(x₀) = 0", () => "f''(x₀) = 0", () => "f'(x₀) ≠ 0");
+        q = `可导函数 f(x) 在 x₀ 处取得极值的必要条件是？`;
+        exp = `可导函数在极值点处必有 f'(x₀) = 0（驻点）；但 f'(x₀) = 0 不保证取极值（如 x³ 在 0 处），故这只是必要条件。`;
       } else {
         // 切线方程
         const x0 = rnd(1, 3);
@@ -518,7 +533,7 @@
         const a = rnd(1, 3);
         o = opts(`x = 0 处取极小值`, () => `x = 0 处取极大值`, () => `x = ${a} 处取极值`, () => "无极值");
         q = `函数 f(x) = ${a}x² 在 x = 0 处的极值是？`;
-        exp = `f'(x) = 2${a}x，x = 0 时 f'(x) = 0，f''(0) = 2${a} > 0，取极小值。`;
+        exp = `f'(x) = ${2 * a}x，x = 0 时 f'(x) = 0，f''(0) = ${2 * a} > 0，取极小值。`;
       }
       results.push(Q(q, o, type < 2 ? "基础" : "进阶", exp, "导数与单调性极值"));
     }
@@ -534,22 +549,21 @@
       const type = i % 3;
       let q, ans, o, exp;
       if (type === 0) {
-        // 恒成立条件
-        o = opts("f(x) ≥ 0 在 R 上恒成立", () => "f(x) > 0 在 R 上恒成立", () => "f(x) ≤ 0 在 R 上恒成立", () => "f(x) < 0 在 R 上恒成立");
-        q = `不等式 f(x) ≥ 0 在定义域内恒成立的含义是？`;
-        exp = `恒成立指对于定义域内所有 x，都有 f(x) ≥ 0。`;
+        // 恒成立含义
+        o = opts("对所有 x 都有 f(x) ≥ 0", () => "存在 x 使 f(x) ≥ 0", () => "对所有 x 都有 f(x) > 0", () => "存在 x 使 f(x) < 0");
+        q = `“f(x) ≥ 0 恒成立”的含义是？`;
+        exp = `恒成立：不论 x 取何值，都有 f(x) ≥ 0，即对所有 x 都有 f(x) ≥ 0。`;
       } else if (type === 1) {
-        // 最值应用
+        // 最小值
         const a = rnd(1, 3);
-        const ansMin = -a;
-        o = opts(`f(x) ≥ ${ansMin}`, () => `f(x) ≥ ${ansMin + 1}`, () => `f(x) ≤ ${ansMin}`, () => `f(x) > ${ansMin}`);
+        o = opts(`−${a}`, () => `${a}`, () => `−${a + 1}`, () => `−${a + 2}`);
         q = `函数 f(x) = x² − ${a} 的最小值是？`;
-        exp = `f(x) = x² − ${a} ≥ −${a}，最小值为 ${ansMin}。`;
+        exp = `x² ≥ 0，故 f(x) = x² − ${a} ≥ −${a}，当 x = 0 时取等，最小值为 −${a}。`;
       } else {
-        // 参数范围
-        o = opts("a > 0", () => "a < 0", () => "a ≥ 0", () => "a ≤ 0");
-        q = `函数 f(x) = ax² + x 在 R 上单调递增，a 的取值范围是？`;
-        exp = `f'(x) = 2ax + 1 ≥ 0 恒成立，需 a ≥ 0 且 1 ≥ 0，故 a ≥ 0。`;
+        // 参数范围（仅 a=0 时 f(x)=x 在 R 上递增）
+        o = opts("a = 0", () => "a > 0", () => "a < 0", () => "a ≥ 0");
+        q = `函数 f(x) = ax² + x 在 R 上单调递增，a 的取值是？`;
+        exp = `a ≠ 0 时 f(x) 是抛物线，总有一侧单调递减；只有 a = 0 时 f(x) = x 在 R 上单调递增。`;
       }
       results.push(Q(q, o, "进阶", exp, "导数与不等式恒成立"));
     }
@@ -565,10 +579,10 @@
       const type = i % 3;
       let q, ans, o, exp;
       if (type === 0) {
-        // 零点定义
+        // 零点定义（零点是横坐标，不是交点本身）
         o = opts("f(x) = 0 的根", () => "f'(x) = 0 的根", () => "f''(x) = 0 的根", () => "f(x) 的极值点");
         q = `函数 f(x) 的零点是指？`;
-        exp = `零点即方程 f(x) = 0 的实数根，或函数图像与 x 轴的交点。`;
+        exp = `零点即方程 f(x) = 0 的根，也就是函数图像与 x 轴交点的横坐标。`;
       } else if (type === 1) {
         // 零点存在定理
         o = opts("f(a)·f(b) < 0", () => "f(a)·f(b) > 0", () => "f(a) = f(b)", () => "f'(a) = f'(b)");
@@ -597,17 +611,17 @@
         // 椭圆定义
         o = opts("到两定点距离之和为常数", () => "到两定点距离之差为常数", () => "到定点与定直线距离相等", () => "到两定点距离之比为常数");
         q = `椭圆的定义是？`;
-        exp = `椭圆：平面内到两定点（焦点）距离之和为常数（大于两焦点距离）的点的轨迹。`;
+        exp = `椭圆是平面内到两定点（焦点）距离之和为常数（大于两焦点间距离）的点的轨迹，即到两定点距离之和为常数。`;
       } else if (type === 1) {
         // 双曲线定义
         o = opts("到两定点距离之差的绝对值为常数", () => "到两定点距离之和为常数", () => "到定点与定直线距离相等", () => "到两定点距离之比为常数");
         q = `双曲线的定义是？`;
-        exp = `双曲线：平面内到两定点（焦点）距离之差的绝对值为常数（小于两焦点距离）的点的轨迹。`;
+        exp = `双曲线是平面内到两定点（焦点）距离之差的绝对值为常数（小于两焦点间距离）的点的轨迹，即到两定点距离之差的绝对值为常数。`;
       } else if (type === 2) {
         // 抛物线定义
         o = opts("到定点与定直线距离相等", () => "到两定点距离之和为常数", () => "到两定点距离之差为常数", () => "到两定点距离之比为常数");
         q = `抛物线的定义是？`;
-        exp = `抛物线：平面内到定点（焦点）与定直线（准线）距离相等的点的轨迹。`;
+        exp = `抛物线是平面内到定点（焦点）与定直线（准线）距离相等的点的轨迹，即到定点与定直线距离相等。`;
       } else {
         // 离心率
         o = opts("e < 1", () => "e = 1", () => "e > 1", () => "e = 0");
@@ -628,12 +642,13 @@
       const type = i % 3;
       let q, ans, o, exp;
       if (type === 0) {
-        // 韦达定理
-        const sum = rnd(1, 10);
+        // 韦达定理（保证判别式 > 0，两根为不等实根）
         const prod = rnd(1, 10);
-        o = opts(`x₁+x₂=${-sum}, x₁x₂=${prod}`, () => `x₁+x₂=${sum}, x₁x₂=${prod}`, () => `x₁+x₂=${-sum}, x₁x₂=${-prod}`, () => `x₁+x₂=${sum}, x₁x₂=${-prod}`);
+        let sum = Math.ceil(2 * Math.sqrt(prod));
+        while (sum * sum <= 4 * prod) sum++;
+        o = opts(`x₁+x₂=−${sum}, x₁x₂=${prod}`, () => `x₁+x₂=${sum}, x₁x₂=${prod}`, () => `x₁+x₂=−${sum}, x₁x₂=−${prod}`, () => `x₁+x₂=${sum}, x₁x₂=−${prod}`);
         q = `方程 x² + ${sum}x + ${prod} = 0 的两根 x₁, x₂，由韦达定理得？`;
-        exp = `韦达定理：x₁+x₂ = −b/a = −${sum}，x₁x₂ = c/a = ${prod}。`;
+        exp = `判别式 Δ = ${sum}² − 4×${prod} = ${sum * sum - 4 * prod} > 0，有两不等实根；韦达定理：x₁+x₂ = −b/a = −${sum}，x₁x₂ = c/a = ${prod}，即 x₁+x₂=−${sum}, x₁x₂=${prod}。`;
       } else if (type === 1) {
         // 判别式
         const a = 1, b = rnd(2, 6), c = rnd(1, 5);
@@ -661,20 +676,23 @@
       const type = i % 3;
       let q, ans, o, exp;
       if (type === 0) {
-        // 中点坐标
-        const x1 = rnd(1, 5), x2 = rnd(1, 5);
+        // 中点坐标（保证两端点不同，且中点可能为 .5 以考查除法）
+        const x1 = rnd(1, 9);
+        let x2 = rnd(1, 9); while (x2 === x1) x2 = rnd(1, 9);
         const mid = (x1 + x2) / 2;
         o = opts(mid, () => mid + 1, () => mid - 1, () => x1 + x2);
         q = `线段两端点横坐标为 ${x1} 和 ${x2}，中点横坐标是？`;
         exp = `中点横坐标 = (${x1} + ${x2}) / 2 = ${mid}。`;
       } else if (type === 1) {
-        // 弦长
-        const a = 1, b = rnd(2, 6), c = rnd(1, 5);
-        const delta = b * b - 4 * a * c;
-        const dist = Math.sqrt(delta) / a;
-        o = opts(dist, () => delta, () => Math.sqrt(delta), () => delta / 2);
+        // 弦长（由两整数根构造，保证 Δ>0 且弦长为整数）
+        const r1 = -rnd(1, 9);
+        let r2 = -rnd(1, 9); while (r2 === r1) r2 = -rnd(1, 9);
+        const b = -(r1 + r2), c = r1 * r2;
+        const delta = b * b - 4 * c; // = (r1−r2)² > 0
+        const dist = Math.abs(r1 - r2);
+        o = opts(dist, () => dist + 1, () => dist - 1, () => b);
         q = `方程 x² + ${b}x + ${c} = 0 的两根距离 |x₁−x₂| = ？`;
-        exp = `|x₁−x₂| = √Δ/|a| = √${delta} / 1 = ${dist}。`;
+        exp = `|x₁−x₂| = √Δ/|a| = √${delta}/1 = ${dist}。`;
       } else {
         // 定点问题
         o = opts("直线过定点 (0, b)", () => "直线过定点 (b, 0)", () => "直线过原点", () => "直线不过定点");
@@ -744,9 +762,9 @@
       } else if (type === 1) {
         // 极坐标化直角坐标
         const r = rnd(2, 5);
-        o = opts(`${r}cosθ`, () => `${r}sinθ`, () => `${r}/cosθ`, () => `${r}/sinθ`);
+        o = opts(`x² + y² = ${r * r}`, () => `x² + y² = ${r}`, () => `x + y = ${r}`, () => `y = ${r}x`);
         q = `极坐标 ρ = ${r} 化为直角坐标方程是？`;
-        exp = `ρ = ${r} → x² + y² = ${r}²，即圆。`;
+        exp = `ρ = ${r} → x² + y² = ρ² = ${r * r}，表示圆心在原点、半径为 ${r} 的圆。`;
       } else {
         // 参数方程应用
         o = opts("t", () => "θ", () => "ρ", () => "φ");
@@ -762,6 +780,13 @@
    * 21. 复数运算（十年级）
    * ============================================================ */
   function qComplex(n) {
+    // 复数规范格式：虚部为 1 时省略系数，负号用 −
+    const cp = (re, im) => {
+      if (im === 0) return `${re}`;
+      const s = im < 0 ? "−" : "+";
+      const a = Math.abs(im);
+      return `${re} ${s} ${a === 1 ? "" : a}i`;
+    };
     const results = [];
     for (let i = 0; i < n; i++) {
       const type = i % 4;
@@ -771,30 +796,30 @@
         const a = rnd(1, 5), b = rnd(1, 5);
         const c = rnd(1, 5), d = rnd(1, 5);
         const real = a + c, imag = b + d;
-        o = opts(`${real}+${imag}i`, () => `${real + 1}+${imag}i`, () => `${real}+${imag + 1}i`, () => `${a + c}+${b - d}i`);
-        q = `( ${a}+${b}i ) + ( ${c}+${d}i ) = ？`;
-        exp = `复数加法：实部加实部，虚部加虚部 = (${real}) + (${imag})i。`;
+        o = opts(cp(real, imag), () => cp(real + 1, imag), () => cp(real, imag + 1), () => cp(a + c, b - d));
+        q = `(${cp(a, b)}) + (${cp(c, d)}) = ？`;
+        exp = `复数加法：实部加实部（${a}+${c}=${real}），虚部加虚部（${b}+${d}=${imag}），结果为 ${cp(real, imag)}。`;
       } else if (type === 1) {
         // 复数乘法
         const a = rnd(1, 3), b = rnd(1, 3);
         const c = rnd(1, 3), d = rnd(1, 3);
         const real = a * c - b * d;
         const imag = a * d + b * c;
-        o = opts(`${real}+${imag}i`, () => `${real + 1}+${imag}i`, () => `${real}+${imag + 1}i`, () => `${a * c}+${b * d}i`);
-        q = `( ${a}+${b}i ) · ( ${c}+${d}i ) = ？`;
-        exp = `复数乘法：(a+bi)(c+di) = (ac−bd) + (ad+bc)i = ${real} + ${imag}i。`;
+        o = opts(cp(real, imag), () => cp(real + 1, imag), () => cp(real, imag + 1), () => cp(a * c, b * d));
+        q = `(${cp(a, b)}) · (${cp(c, d)}) = ？`;
+        exp = `复数乘法：(a+bi)(c+di) = (ac−bd) + (ad+bc)i = (${a}×${c}−${b}×${d}) + (${a}×${d}+${b}×${c})i = ${cp(real, imag)}。`;
       } else if (type === 2) {
         // 共轭复数
         const a = rnd(1, 5), b = rnd(1, 5);
-        o = opts(`${a}-${b}i`, () => `${a}+${b}i`, () => `-${a}+${b}i`, () => `-${a}-${b}i`);
-        q = `复数 z = ${a}+${b}i 的共轭复数是？`;
-        exp = `共轭复数实部不变，虚部变号：z̄ = ${a} − ${b}i。`;
+        o = opts(cp(a, -b), () => cp(a, b), () => cp(-a, b), () => cp(-a, -b));
+        q = `复数 z = ${cp(a, b)} 的共轭复数是？`;
+        exp = `共轭复数实部不变、虚部变号：z̄ = ${cp(a, -b)}。`;
       } else {
         // 模长
         const a = rnd(3, 5), b = rnd(3, 5);
         const mod = Math.sqrt(a * a + b * b);
         o = opts(mod.toFixed(1), () => (mod + 1).toFixed(1), () => (mod - 1).toFixed(1), () => (a + b).toFixed(1));
-        q = `复数 z = ${a}+${b}i 的模 |z| = ？`;
+        q = `复数 z = ${cp(a, b)} 的模 |z| = ？`;
         exp = `|z| = √(a²+b²) = √(${a*a}+${b*b}) = ${mod.toFixed(1)}。`;
       }
       results.push(Q(q, o, "基础", exp, "复数运算"));
@@ -813,13 +838,13 @@
       if (type === 0) {
         // 期望计算
         const E = rnd(2, 10);
-        o = opts(E, () => E + 1, () => E - 1, () => E * 2);
+        o = opts(E * 2, () => E + 1, () => E, () => E - 1);
         q = `随机变量 X 的期望 E(X) = ${E}，则 E(2X) = ？`;
         exp = `E(2X) = 2E(X) = 2 × ${E} = ${E * 2}。`;
       } else if (type === 1) {
         // 方差计算
         const D = rnd(1, 5);
-        o = opts(D, () => D * 2, () => D / 2, () => D + 1);
+        o = opts(D * 4, () => D * 2, () => D, () => D + 1);
         q = `随机变量 X 的方差 D(X) = ${D}，则 D(2X) = ？`;
         exp = `D(2X) = 4D(X) = 4 × ${D} = ${D * 4}。`;
       } else if (type === 2) {
@@ -990,7 +1015,7 @@
       if (type === 0) {
         o = opts("点 3", () => "原点", () => "点 0", () => "点 x");
         q = "|x − 3| 的几何意义是数轴上点 x 到哪里的距离？";
-        exp = "|x − a| 表示点 x 到点 a 的距离，故 |x−3| 是到 3 的距离。";
+        exp = "|x − a| 表示点 x 到点 a 的距离，这里 a = 3，即到点 3 的距离。";
       } else if (type === 1) {
         o = opts("x < −1 或 x > 1", () => "−1 < x < 1", () => "x > 1", () => "x < −1");
         q = "用数形结合解不等式 x² − 1 > 0，解集是？";
@@ -1021,7 +1046,7 @@
       if (type === 0) {
         o = opts("验证 n 取初值（如 n=1）时命题成立", () => "令 n→∞", () => "证明 n=k+1", () => "直接写结论");
         q = "用数学归纳法证明命题，第一步（奠基）要做的是？";
-        exp = "第一步验证起始值（如 n=1）时命题成立。";
+        exp = "第一步（奠基）：验证 n 取初值（如 n=1）时命题成立。";
       } else if (type === 1) {
         o = opts("由 n=k 成立推出 n=k+1 成立", () => "由 n=1 推出 n=2", () => "证明 n=k 成立", () => "令 n→∞");
         q = "归纳法的第二步（递推）要证明的是？";
@@ -1230,7 +1255,7 @@
       if (type === 0) {
         o = opts("两向量共线（对应分量成比例）", () => "两向量垂直", () => "a = c", () => "任意情况");
         q = "二维柯西不等式 (a²+b²)(c²+d²) ≥ (ac+bd)² 中等号成立的条件是？";
-        exp = "等号当且仅当向量 (a,b) 与 (c,d) 共线（对应分量成比例）。";
+        exp = "等号当且仅当两向量共线（对应分量成比例）时成立。";
       } else if (type === 1) {
         o = opts(`1`, () => `2`, () => `√2`, () => `0`);
         q = `已知 a²+b²=1 且 c²+d²=1，则 ac+bd 的最大值为？`;
@@ -1344,7 +1369,7 @@
       if (type === 0) {
         o = opts("(f(b) − f(a)) / (b − a)", () => "f(b) − f(a)", () => "f'(a)", () => "0");
         q = "拉格朗日中值定理：若 f 在[a,b]连续、(a,b)可导，则 ∃ξ∈(a,b) 使 f'(ξ) = ？";
-        exp = "存在 ξ 使切线斜率等于割线斜率：f'(ξ) = (f(b)−f(a))/(b−a)。";
+        exp = "存在 ξ 使切线斜率等于割线斜率：f'(ξ) = (f(b) − f(a)) / (b − a)。";
       } else if (type === 1) {
         o = opts(`1/2`, () => `1`, () => `0`, () => `2`);
         q = "f(x)=x² 在 [0,1] 上，满足中值定理的 ξ = ？";
@@ -1532,9 +1557,9 @@
         exp = "把 1/n² 放缩为 1/(n(n-1)) = 1/(n-1) − 1/n，裂项成可求和形式。";
       } else if (type === 2) {
         const a = rnd(2, 5);
-        o = opts(`S_n < a`, () => `S_n > a`, () => `S_n = a`, () => `S_n < 0`);
-        q = `已知 0<a_n≤${a}、a_{n+1}≤a_n（递减有上界），则前 n 项和 S_n 满足？`;
-        exp = "每项 ≤ ${a}，故 S_n = Σ a_k ≤ n·${a}；更强地由单调有界知 S_n 有上界。此处给出每项上界 ${a}。";
+        o = opts(`S_n ≤ n·a`, () => `S_n ≥ n·a`, () => `S_n ≤ a`, () => `S_n < 0`);
+        q = `已知对一切正整数 n 都有 0 < a_n ≤ ${a}，则前 n 项和 S_n = a₁ + a₂ + … + a_n 满足？`;
+        exp = `每项都不超过 ${a}，故 S_n = Σa_k ≤ n·${a}（放缩到可估计的范围）。`;
       } else {
         o = opts("把难求的式放缩到易求范围", () => "精确计算", () => "求导", () => "积分");
         q = "不等式放缩法的主要目的是？";
@@ -1586,9 +1611,9 @@
         exp = `|z| = √(a²+b²) = √(${a}²+${b}²) = ${r.toFixed(2)}。`;
       } else if (type === 1) {
         const a = rnd(2, 4), b = rnd(1, 3);
-        o = opts(`${b} − ${a}i`, () => `${a} + ${b}i`, () => `−${a} + ${b}i`, () => `${b} + ${a}i`);
+        o = opts(`−${b} + ${a}i`, () => `${a} + ${b}i`, () => `−${a} + ${b}i`, () => `${b} + ${a}i`);
         q = `复数 z = ${a} + ${b}i 乘 i 后等于？（i·(a+bi)）`;
-        exp = `i(a+bi) = ai + bi² = −b + ai = ${b}−${a}i（相当于逆时针旋转 90°）。`;
+        exp = `i(a+bi) = ai + bi² = −b + ai = −${b} + ${a}i（相当于逆时针旋转 90°）。`;
       } else if (type === 2) {
         o = opts("关于实轴对称", () => "关于原点对称", () => "逆时针转 90°", () => "放大");
         q = "共轭复数 z̄ 的几何意义是？";
@@ -1635,17 +1660,17 @@
   /* ---------- 拓展：解析几何综合（coord_geo） ---------- */
   function qCoordGeo(n) {
     const results = [];
-    const sgn = v => v === 0 ? "" : (v > 0 ? "-" + v : "+" + (-v));
     for (let i = 0; i < n; i++) {
       const type = i % 4;
       let q, o, exp;
       if (type === 0) {
         let x1 = rnd(-6, 6), y1 = rnd(-6, 6), x2 = rnd(-6, 6), y2 = rnd(-6, 6);
         while (x1 === x2 && y1 === y2) { x2 = rnd(-6, 6); y2 = rnd(-6, 6); }
-        const d2 = (x2 - x1) ** 2 + (y2 - y1) ** 2, d = Math.sqrt(d2);
-        o = opts(d.toFixed(2), () => Math.sqrt(d2 + rnd(1, 10)).toFixed(2), () => Math.sqrt(Math.abs(d2 - rnd(1, 10))).toFixed(2), () => (Math.abs(x2 - x1) + Math.abs(y2 - y1)).toFixed(2));
+        const dx = x2 - x1, dy = y2 - y1;
+        const d2 = dx * dx + dy * dy, d = Math.sqrt(d2);
+        o = opts(d.toFixed(2), () => Math.sqrt(d2 + rnd(1, 10)).toFixed(2), () => Math.sqrt(Math.abs(d2 - rnd(1, 10))).toFixed(2), () => (Math.abs(dx) + Math.abs(dy)).toFixed(2));
         q = `点 A(${x1},${y1}) 与 B(${x2},${y2}) 的距离是？`;
-        exp = `d = √[(${x2}−${x1})² + (${y2}−${y1})²] = √${d2} ≈ ${d.toFixed(2)}。`;
+        exp = `d = √[(${dx})² + (${dy})²] = √${d2} ≈ ${d.toFixed(2)}。`;
       } else if (type === 1) {
         const x1 = rnd(-8, 8), y1 = rnd(-8, 8), x2 = rnd(-8, 8), y2 = rnd(-8, 8);
         const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
@@ -1655,15 +1680,18 @@
       } else if (type === 2) {
         let x1 = rnd(-5, 5), y1 = rnd(-5, 5);
         let x2 = rnd(-5, 5); while (x2 === x1) x2 = rnd(-5, 5);
-        const y2 = rnd(-5, 5), k = (y2 - y1) / (x2 - x1);
-        o = opts(k.toFixed(2), () => ((y1 - y2) / (x2 - x1)).toFixed(2), () => ((x2 - x1) / (y2 - y1)).toFixed(2), () => rnd(1, 5).toFixed(2));
+        let y2 = rnd(-5, 5); while (y2 === y1) y2 = rnd(-5, 5);
+        const k = (y2 - y1) / (x2 - x1);
+        o = opts(k.toFixed(2), () => (-k).toFixed(2), () => ((x2 - x1) / (y2 - y1)).toFixed(2), () => rnd(1, 5).toFixed(2));
         q = `过 A(${x1},${y1})、B(${x2},${y2}) 的直线斜率 k = ？`;
         exp = `k = (y₂−y₁)/(x₂−x₁) = (${y2}−${y1})/(${x2}−${x1}) = ${k.toFixed(2)}。`;
       } else {
         const a = rnd(-5, 5), b = rnd(-5, 5), r = rnd(2, 6);
-        o = opts(`(x${sgn(a)})²+(y${sgn(b)})²=${r * r}`, () => `(x${sgn(a)})²+(y${sgn(b)})²=${r * r + 1}`, () => `(x${sgn(a)})²+y²=${r * r}`, () => `x²+y²=${r * r}`);
+        const cst = (v, u) => v === 0 ? `${u}²` : `(${u}${v > 0 ? "−" : "+"}${Math.abs(v)})²`;
+        const eq = `${cst(a, "x")}+${cst(b, "y")}=${r * r}`;
+        o = opts(eq, () => `${cst(a, "x")}+${cst(b, "y")}=${r * r + 1}`, () => `${cst(a, "x")}+y²=${r * r}`, () => `x²+y²=${r * r}`);
         q = `圆心 (${a},${b})、半径 ${r} 的圆的标准方程是？`;
-        exp = `标准方程 (x−a)²+(y−b)²=r² → (x${sgn(a)})²+(y${sgn(b)})²=${r * r}。`;
+        exp = `标准方程 (x−a)²+(y−b)²=r²，代入圆心与半径得 ${eq}。`;
       }
       results.push(Q(q, o, type === 3 ? "基础" : "进阶", exp, "解析几何"));
     }
@@ -1689,11 +1717,11 @@
       } else if (type === 2) {
         o = opts("平方平均 ≥ 算术平均 ≥ 几何平均 ≥ 调和平均", () => "算术平均 ≥ 平方平均 ≥ 几何平均 ≥ 调和平均", () => "几何平均 ≥ 算术平均 ≥ 调和平均 ≥ 平方平均", () => "调和平均 ≥ 几何平均 ≥ 算术平均 ≥ 平方平均");
         q = "对正数 a,b，四个经典平均的大小顺序是？";
-        exp = "Q ≥ A ≥ G ≥ H。这是 Jensen（凸性）的直接推论。";
+        exp = "平方平均 ≥ 算术平均 ≥ 几何平均 ≥ 调和平均（Q ≥ A ≥ G ≥ H），这是 Jensen（凸性）的直接推论。";
       } else {
         o = opts("e^((x+y)/2) ≤ (eˣ+eʸ)/2", () => "e^((x+y)/2) ≥ (eˣ+eʸ)/2", () => "e^((x+y)/2) = (eˣ+eʸ)/2", () => "e^((x+y)/2) · (eˣ+eʸ)/2 = 1");
         q = "由 Jensen 不等式，对 f(t)=eᵗ（x,y 任意）有？";
-        exp = "f(t)=eᵗ 下凸，故 e^((x+y)/2)=f((x+y)/2) ≤ (f(x)+f(y))/2 = (eˣ+eʸ)/2。";
+        exp = "f(t)=eᵗ 下凸，由 Jensen 不等式：e^((x+y)/2) ≤ (eˣ+eʸ)/2。";
       }
       results.push(Q(q, o, "进阶", exp, "琴生不等式"));
     }
@@ -1738,13 +1766,14 @@
         const m = rnd(2, 5);
         o = opts(`cos(${m}θ)+i·sin(${m}θ)`, () => `cos θ + i·sin(${m}θ)`, () => `${m}(cos θ + i·sin θ)`, () => `cos(${m}θ)·sin(${m}θ)`);
         q = `(cos θ + i·sin θ)^${m} = ？`;
-        exp = `棣莫弗定理：(cosθ+i sinθ)^m = cos(mθ)+i sin(mθ)。`;
+        exp = `棣莫弗定理：(cos θ + i·sin θ)^${m} = cos(${m}θ)+i·sin(${m}θ)。`;
       } else if (type === 1) {
         const r = rnd(2, 5), m = rnd(2, 4);
-        const root = Math.pow(r, 1 / m).toFixed(2);
-        o = opts(`${root}(cos((θ+2kπ)/${m}) + i·sin((θ+2kπ)/${m}))`, () => `${r}(cos(θ/${m}) + i·sin(θ/${m}))`, () => `${root}(cos θ + i·sin θ)`, () => `${Math.pow(r, 1 / m).toFixed(2)}(cos((θ+2kπ)/${m+1}) + i·sin((θ+2kπ)/${m+1}))`);
-        q = `复数 z = ${r}(cos θ + i·sin θ) 的 ${m} 次方根（k=0,…,${m-1}）是？`;
-        exp = `n 次方根模为 r^{1/${m}}=${root}，辐角 (θ+2kπ)/${m}。`;
+        const rv = Math.pow(r, 1 / m);
+        const root = Number.isInteger(rv) ? String(rv) : rv.toFixed(2);
+        o = opts(`${root}(cos((θ+2kπ)/${m}) + i·sin((θ+2kπ)/${m}))`, () => `${r}(cos(θ/${m}) + i·sin(θ/${m}))`, () => `${root}(cos θ + i·sin θ)`, () => `${root}(cos((θ+2kπ)/${m + 1}) + i·sin((θ+2kπ)/${m + 1}))`);
+        q = `复数 z = ${r}(cos θ + i·sin θ) 的 ${m} 次方根（k=0,…,${m - 1}）是？`;
+        exp = `n 次方根模为 r^{1/${m}} = ${root}，辐角为 (θ+2kπ)/${m}，即 ${root}(cos((θ+2kπ)/${m}) + i·sin((θ+2kπ)/${m}))。`;
       } else if (type === 2) {
         o = opts("n 个", () => "1 个", () => "2 个", () => "无穷多个");
         q = "方程 zⁿ = 1（n 为正整数）在复数范围内的根有？";
@@ -1780,12 +1809,15 @@
         const p = rnd(2, 8) / 10, dp = (p * (1 - p)).toFixed(2);
         o = opts(`E=${p}, D=${dp}`, () => `E=${p}, D=${(p * p).toFixed(2)}`, () => `E=${dp}, D=${p}`, () => `E=${1 - p}, D=${p}`);
         q = `X~两点分布，P(X=1)=${p}，则 E(X)、D(X) 是？`;
-        exp = `两点分布：E=p=${p}，D=p(1-p)=${dp}。`;
+        exp = `两点分布：E=p=${p}，D=p(1−p)=${dp}，即 E=${p}, D=${dp}。`;
       } else {
-        const nn = rnd(5, 15), p = rnd(2, 7) / 10, e = (nn * p).toFixed(0), d = (nn * p * (1 - p)).toFixed(2);
+        const p = rnd(2, 7) / 10;
+        const nn = pick([10, 20]);
+        const e = nn * p;                         // 恰为整数
+        const d = (nn * p * (1 - p)).toFixed(2);  // 最多两位小数
         o = opts(`E=${e}, D=${d}`, () => `E=${nn}, D=${d}`, () => `E=${e}, D=${(nn * p * nn * p).toFixed(2)}`, () => `E=${p}, D=${d}`);
         q = `X~B(${nn}, ${p})（二项分布），则 E(X)、D(X) 是？`;
-        exp = `二项分布：E=np=${nn}·${p}=${e}，D=np(1-p)=${d}。`;
+        exp = `二项分布：E=np=${nn}×${p}=${e}，D=np(1−p)=${d}，即 E=${e}, D=${d}。`;
       }
       results.push(Q(q, o, "进阶", exp, "随机变量"));
     }
