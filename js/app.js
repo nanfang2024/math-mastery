@@ -305,7 +305,7 @@
     acts.style.margin = "4px 0 18px";
     acts.innerHTML = `
       <a class="btn" href="#/practice/${t.id}">开始练习（${typeof t.qgen === "function" ? "每轮 8 题·随机" : t.questions.length + " 题"}）</a>
-      ${!st.mastered ? `<a class="btn soft" href="#/gate/${t.id}">通关测试</a>` : `<span class="status-pill done">已掌握 ✓</span>`}
+      ${!st.mastered ? `<a class="btn soft" href="#/gate/${t.id}">通关测试</a>` : `<span class="status-pill done">已掌握</span>`}
       <a class="btn ghost" id="backBtnL" href="#/path">返回路径</a>`;
     v.appendChild(acts);
     acts.querySelector("#backBtnL").addEventListener("click", (e) => { e.preventDefault(); goPath(t.id); });
@@ -322,14 +322,14 @@
   function isJudge(q) {
     if (!q.opts || q.opts.length !== 2) return false;
     const s = q.opts.map(x => String(x).trim());
-    const yes = s.some(x => x === "对" || x === "正确" || x === "✓" || x === "✔");
-    const no = s.some(x => x === "错" || x === "错误" || x === "✗" || x === "✘");
+    const yes = s.some(x => x === "对" || x === "正确");
+    const no = s.some(x => x === "错" || x === "错误");
     return yes && no;
   }
-  // 判断题标记：✓ 对 / ✗ 错
+  // 判断题标记：对 / 错
   function judgeMark(text) {
     const t = String(text).trim();
-    return (t === "对" || t === "正确" || t === "✓" || t === "✔") ? "✓" : "✗";
+    return (t === "对" || t === "正确") ? "对" : "错";
   }
 
   function renderQuiz(id, mode) {
@@ -378,7 +378,7 @@
           st.mastered = true; save(state);
           const nxt = TECHNIQUES.find(x => x.prereq === t.id);
           const freeToEnter = gradeNum(t.grade) >= 9;
-          banner.innerHTML = `<div class="qres" style="color:var(--ok)">🎉 融会贯通！${esc(t.name)} 已掌握</div>
+          banner.innerHTML = `<div class="qres" style="color:var(--ok)">融会贯通！${esc(t.name)} 已掌握</div>
             ${nxt ? `<div class="muted">下一技巧已解锁：<b>${esc(nxt.name)}</b></div>
               <a class="btn" href="#/learn/${nxt.id}" style="margin-top:10px">去学习 ${esc(nxt.name)}</a>`
               : (freeToEnter ? `<div class="muted">本年级所有技巧均可直接进入，按需挑选下一个继续吧。</div>`
@@ -435,7 +435,7 @@
 
     if (mode === "practice") {
       const again = document.createElement("div"); again.className = "row"; again.style.margin = "6px 0 16px";
-      again.innerHTML = `<a class="btn ghost" id="againBtn" href="#/practice/${t.id}">🔄 再练一组</a><a class="btn soft" id="backBtn" href="#/path">返回路径</a>`;
+      again.innerHTML = `<a class="btn ghost" id="againBtn" href="#/practice/${t.id}">再练一组</a><a class="btn soft" id="backBtn" href="#/path">返回路径</a>`;
       v.appendChild(again);
       // 关键修复：当前页 hash 与按钮 href 相同，hashchange 不会触发，需手动强制重渲染
       again.querySelector("#againBtn").addEventListener("click", (e) => {
@@ -469,7 +469,7 @@
       });
     });
     if (!items.length) {
-      v.innerHTML += `<div class="empty">🎉 暂时没有薄弱点，继续保持！</div>`;
+      v.innerHTML += `<div class="empty">暂时没有薄弱点，继续保持！</div>`;
       return;
     }
     const tip = document.createElement("div"); tip.className = "hint";
@@ -562,7 +562,7 @@
           const weakN = Object.keys(st.weak).filter(k => !st.weak[k].cleared).length;
           const node = document.createElement("div");
           node.className = "node " + (status === "done" ? "mastered" : status === "lock" ? "locked" : "");
-          node.innerHTML = `<div class="step">${status === "done" ? "✓" : (open ? "●" : "🔒")}</div>
+          node.innerHTML = `<div class="step">${status === "done" ? "通" : (open ? "●" : "锁")}</div>
             <div class="body"><div class="title">${esc(t.name)}
               <span class="status-pill ${status === "lock" ? "lock" : status === "done" ? "done" : "learn"}">${status === "lock" ? "未解锁" : status === "done" ? "已掌握" : "学习中"}</span>
               ${weakN ? `<span class="tag w">薄弱点 ${weakN}</span>` : ""}</div>

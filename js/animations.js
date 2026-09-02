@@ -81,9 +81,9 @@ window.Anim = (function () {
         let p = 0; const t = setInterval(() => { p += 0.08; liftAll(Math.min(1, p)); if (p >= 1) clearInterval(t); }, 16);
       } else if (step === 3) {
         const remain = L - 2 * H;
-        cap.textContent = `第3步：地上剩 ${remain} 条橙色腿，每只兔站 2 条 → 兔 = ${remain}÷2 = ${rabbit} 只；鸡 = ${H}−${rabbit} = ${chickenN} 只。验算：${chickenN}×2 + ${rabbit}×4 = ${chickenN*2+rabbit*4} = ${L} ✓`;
+        cap.textContent = `第3步：地上剩 ${remain} 条橙色腿，每只兔站 2 条 → 兔 = ${remain}÷2 = ${rabbit} 只；鸡 = ${H}−${rabbit} = ${chickenN} 只。验算：${chickenN}×2 + ${rabbit}×4 = ${chickenN*2+rabbit*4} = ${L}，正确。`;
         revealRabbits();
-        btn.disabled = true; btn.textContent = "✓ 完成";
+        btn.disabled = true; btn.textContent = "完成";
       }
     };
     box.appendChild(svg); box.appendChild(cap); box.appendChild(ctrls);
@@ -129,7 +129,7 @@ window.Anim = (function () {
       const best = dist(A, Bp);
       const diff = (s - best);
       cap.textContent = `当前 PA+PB = ${s.toFixed(0)}，理论最短(AB′) = ${best.toFixed(0)}`;
-      if (diff < 2.5) { info.textContent = "✓ 已落在最短点：作 B 关于河岸的对称点 B′，连 A B′ 与河岸交点即最优。"; cap.style.color = "#86efac"; }
+      if (diff < 2.5) { info.textContent = "已落在最短点：作 B 关于河岸的对称点 B′，连 A B′ 与河岸交点即最优。"; cap.style.color = "#86efac"; }
       else { info.textContent = ""; cap.style.color = "#cbd5e1"; }
     }
     update(Mstar);
@@ -368,7 +368,7 @@ window.Anim = (function () {
           info.textContent = "t=" + t.toFixed(1) + "  甲走" + (v1*t).toFixed(0) + "  乙走" + (v2*t).toFixed(0);
           if (x1 >= x2) {
             const mx = (x1 + x2) / 2; p1.setAttribute("cx", mx); p2.setAttribute("cx", mx);
-            info.textContent = "在距A " + (v1*t).toFixed(0) + " 处相遇 ✓"; raf = null; return;
+            info.textContent = "在距A " + (v1*t).toFixed(0) + " 处相遇"; raf = null; return;
           }
           raf = requestAnimationFrame(step);
         };
@@ -383,7 +383,7 @@ window.Anim = (function () {
           info.textContent = "t=" + t.toFixed(1) + "  甲走" + (v1*t).toFixed(0) + "  乙已走" + ((B-A)+v2*t).toFixed(0);
           if (x1 >= x2) {
             p1.setAttribute("cx", x2); p2.setAttribute("cx", x2);
-            info.textContent = "甲在第 " + (v1*t).toFixed(0) + " 米处追上 ✓"; raf = null; return;
+            info.textContent = "甲在第 " + (v1*t).toFixed(0) + " 米处追上"; raf = null; return;
           }
           raf = requestAnimationFrame(step);
         };
