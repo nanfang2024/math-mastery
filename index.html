@@ -2,12 +2,20 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#22355f" />
+  <meta name="description" content="融会贯通 · 中小学数学技巧教练：覆盖小学、初中、高中的技巧学习、随机练习与薄弱点复习。" />
   <title>融会贯通 · 中小学数学教练</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <header class="topbar">
+    <button class="back-arr" id="backArr" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>
+    </button>
     <div class="brand">
       <span class="logo">∑</span>
       <div>
@@ -15,17 +23,37 @@
         <div class="brand-sub">中小学数学技巧教练</div>
       </div>
     </div>
-    <nav class="nav">
-      <a href="#/path" class="nav-link" data-route="path">学习路径</a>
-      <a href="#/review" class="nav-link" data-route="review">薄弱点复习<span class="badge" id="weakBadge">0</span></a>
-      <a href="#/progress" class="nav-link" data-route="progress">我的进度</a>
-      <a href="#/resources" class="nav-link" data-route="resources">相关项目</a>
-    </nav>
+    <span class="ver-chip" id="verChip">V 1.0</span>
   </header>
 
   <main id="view" class="view"><!-- 路由渲染区 --></main>
 
-  <footer class="footpad"></footer>
+  <div class="footpad"></div>
+
+  <nav class="tabbar">
+    <a href="#/path" class="tab nav-link active" data-route="path">
+      <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="5.5" r="2"/><path d="M7.3 16.9c3.4-1.9 2.6-7 6.1-9.6" stroke-dasharray="0.5 3.2"/></svg></span>
+      <span class="tab-label">学习</span>
+    </a>
+    <a href="#/review" class="tab nav-link" data-route="review">
+      <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.3"/><circle cx="12" cy="12" r="4.3"/><circle cx="12" cy="12" r="0.7" fill="currentColor" stroke="none"/></svg></span>
+      <span class="tab-label">复习</span>
+      <span class="badge" id="weakBadge">0</span>
+    </a>
+    <a href="#/progress" class="tab nav-link" data-route="progress">
+      <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 19.5h15"/><path d="M6.5 16.5l4.5-4.5 3 3 5-6"/><path d="M16 9h3.5v3.5"/></svg></span>
+      <span class="tab-label">进度</span>
+    </a>
+    <a href="#/resources" class="tab nav-link" data-route="resources">
+      <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="1.8"/><rect x="13" y="4" width="7" height="7" rx="1.8"/><rect x="4" y="13" width="7" height="7" rx="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.8"/></svg></span>
+      <span class="tab-label">资源</span>
+    </a>
+    <a href="#/about" class="tab nav-link" data-route="about">
+      <span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.3"/><path d="M12 11.2v5"/><path d="M12 7.6v.2"/></svg></span>
+      <span class="tab-label">关于</span>
+    </a>
+  </nav>
+
   <div id="toast" class="toast"></div>
 
   <script src="js/data.js"></script>

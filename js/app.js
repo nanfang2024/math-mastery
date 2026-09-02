@@ -4,6 +4,9 @@
  * ============================================================ */
 (function () {
   const KEY = "mathMastery.v1";
+  const APP_VERSION = "1.0.0";
+  const APP_EDITION = "砚墨";
+  const APP_BUILD = "2026-09-02";
   const $ = sel => document.querySelector(sel);
   const view = () => document.getElementById("view");
 
@@ -81,18 +84,30 @@
   function route() {
     const h = location.hash.replace(/^#\/?/, "");
     const parts = h.split("/");
-    document.querySelectorAll(".nav-link").forEach(a => a.classList.toggle("active", a.dataset.route === parts[0]));
+    const cur = parts[0] || "path";
+    document.querySelectorAll(".nav-link").forEach(a => a.classList.toggle("active", a.dataset.route === cur));
+    const ba = $("#backArr"); if (ba) ba.classList.toggle("show", cur !== "path");
+    const vc = $("#verChip"); if (vc && vc.dataset.v !== APP_VERSION) { vc.textContent = "V " + APP_VERSION; vc.dataset.v = APP_VERSION; }
     updateBadge();
-    if (parts[0] === "" || parts[0] === "path") return renderPath();
-    if (parts[0] === "learn") return renderLearn(parts[1]);
-    if (parts[0] === "practice") return renderQuiz(parts[1], "practice");
-    if (parts[0] === "gate") return renderQuiz(parts[1], "gate");
-    if (parts[0] === "review") return renderReview();
-    if (parts[0] === "progress") return renderProgress();
-    if (parts[0] === "resources") return renderResources();
+    window.scrollTo(0, 0);
+    if (cur === "path") return renderPath();
+    if (cur === "learn") return renderLearn(parts[1]);
+    if (cur === "practice") return renderQuiz(parts[1], "practice");
+    if (cur === "gate") return renderQuiz(parts[1], "gate");
+    if (cur === "review") return renderReview();
+    if (cur === "progress") return renderProgress();
+    if (cur === "resources") return renderResources();
+    if (cur === "about") return renderAbout();
     renderPath();
   }
   window.addEventListener("hashchange", route);
+
+  // 顶栏返回箭头：从学习/练习页返回路径并定位到该技巧节点
+  $("#backArr").addEventListener("click", () => {
+    const p = location.hash.replace(/^#\/?/, "").split("/");
+    if ((p[0] === "learn" || p[0] === "practice" || p[0] === "gate") && p[1]) return goPath(p[1]);
+    location.hash = "#/path";
+  });
 
   // 返回学习路径，并定位/高亮到指定技巧节点（避免回到页面最顶部）
   function goPath(techId) {
@@ -115,6 +130,7 @@
       "中学": "7–9 年级 · 初中代数、几何、函数",
       "高中": "10–12 年级 · 高中数学核心与专题"
     };
+    const STAGE_GLYPH = { "小学": "＋", "中学": "√", "高中": "∫" };
     const groups = {};
     TECHNIQUES.forEach(t => { const k = t.stage + "|" + t.grade; (groups[k] = groups[k] || []).push(t); });
 
@@ -123,11 +139,11 @@
       const grades = [...new Set(TECHNIQUES.filter(t => t.stage === stage).map(t => t.grade))]
         .sort((a, b) => gradeNum(a) - gradeNum(b));
       if (!grades.length) return;
-      const sb = document.createElement("div"); sb.className = "stage-banner";
-      sb.innerHTML = `<span class="stage-name">${stage}</span><span class="stage-desc">${STAGE_DESC[stage]}</span>`;
+      const sb = document.createElement("div"); sb.className = "stage-banner"; sb.dataset.stage = stage;
+      sb.innerHTML = `<span class="stage-name">${stage}</span><span class="stage-desc">${STAGE_DESC[stage]}</span><span class="stage-glyph">${STAGE_GLYPH[stage]}</span>`;
       v.appendChild(sb);
       grades.forEach(g => {
-        const sub = document.createElement("div"); sub.className = "grade-sep";
+        const sub = document.createElement("div"); sub.className = "grade-sep"; sub.dataset.stage = stage;
         sub.innerHTML = `<span class="grade-tag">${g}</span><span class="grade-count">${groups[stage + "|" + g].length} 个技巧</span>`;
         v.appendChild(sub);
         sortGroup(groups[stage + "|" + g]).forEach(t => {
@@ -437,11 +453,11 @@
       const grades = [...new Set(TECHNIQUES.filter(t => t.stage === stage).map(t => t.grade))]
         .sort((a, b) => gradeNum(a) - gradeNum(b));
       if (!grades.length) return;
-      const sb = document.createElement("div"); sb.className = "stage-banner sm";
+      const sb = document.createElement("div"); sb.className = "stage-banner sm"; sb.dataset.stage = stage;
       sb.innerHTML = `<span class="stage-name">${stage}</span>`;
       tree.appendChild(sb);
       grades.forEach(g => {
-        const sub = document.createElement("div"); sub.className = "grade-sep";
+        const sub = document.createElement("div"); sub.className = "grade-sep"; sub.dataset.stage = stage;
         sub.innerHTML = `<span class="grade-tag">${g}</span><span class="grade-count">${groups[stage + "|" + g].length} 个技巧</span>`;
         tree.appendChild(sub);
         sortGroup(groups[stage + "|" + g]).forEach(t => {
@@ -502,6 +518,76 @@
     if (!cats.length) {
       v.innerHTML += `<div class="empty">暂无推荐资源</div>`;
     }
+  }
+
+  /* ---------------- 关于 ---------------- */
+  function copyText(txt) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(txt);
+    return new Promise((res) => {
+      const ta = document.createElement("textarea");
+      ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      ta.remove(); res();
+    });
+  }
+  function renderAbout() {
+    const v = view();
+    const total = TECHNIQUES.length;
+    const gens = TECHNIQUES.filter(t => typeof t.qgen === "function").length;
+    const grades = new Set(TECHNIQUES.map(t => t.grade)).size;
+    v.innerHTML = `
+      <div class="about-hero">
+        <span class="glyph g1">π</span><span class="glyph g2">∑</span><span class="glyph g3">√</span><span class="glyph g4">∫</span>
+        <div class="seal">∑</div>
+        <div class="ah-name">融会贯通</div>
+        <div class="ah-sub">中小学数学技巧教练</div>
+        <div class="ah-chips">
+          <span class="ah-chip">V ${APP_VERSION} · ${APP_EDITION}版</span>
+          <span class="ah-chip alt">构建日期 ${APP_BUILD}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="about-h">关于本软件</h3>
+        <p class="about-p">「融会贯通」是一款覆盖小学、初中、高中三个学段的数学技巧学习工具。它把每个考点提炼为「名师口诀、解题步骤、动图演示、随机练习」四步闭环，配合通关测试与薄弱点复习，帮助学生真正吃透每一个方法，而不是刷完就忘。</p>
+        <div class="feat-grid">
+          <div class="feat"><div class="feat-t">学习路径</div><div class="feat-d">${total} 个技巧按学段与年级递进排列，循序渐进解锁</div></div>
+          <div class="feat"><div class="feat-t">随机出题</div><div class="feat-d">${gens} 个参数化引擎，每轮题目即时生成、不重样</div></div>
+          <div class="feat"><div class="feat-t">薄弱点复习</div><div class="feat-d">做错自动收录为薄弱点，攻克清零才能通关</div></div>
+          <div class="feat"><div class="feat-t">通关测试</div><div class="feat-d">正确率不低于 80% 且薄弱点清零，方为融会贯通</div></div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat"><div class="n">${total}</div><div class="l">学习技巧</div></div>
+        <div class="stat"><div class="n">${gens}</div><div class="l">随机引擎</div></div>
+        <div class="stat"><div class="n">${grades}</div><div class="l">覆盖年级</div></div>
+        <div class="stat"><div class="n">3</div><div class="l">学习学段</div></div>
+      </div>
+
+      <div class="wechat-card">
+        <div class="wc-ico">
+          <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+            <path fill="#07c160" d="M11.7 6C7.4 6 3.9 8.9 3.9 12.5c0 2 1.1 3.8 2.8 5l-.7 2.3 2.6-1.3c.9.3 1.9.4 2.8.4h.5c-.2-.6-.3-1.2-.3-1.9 0-3.4 3.3-6.1 7.3-6.1h.4C18.3 8.2 15.3 6 11.7 6z"/>
+            <circle cx="8.8" cy="10.4" r=".9" fill="#fff"/><circle cx="14.2" cy="10.4" r=".9" fill="#fff"/>
+            <path fill="#07c160" d="M28.1 16.9c0-3-2.9-5.4-6.5-5.4s-6.5 2.4-6.5 5.4 2.9 5.4 6.5 5.4c.8 0 1.5-.1 2.2-.4l2.3 1.2-.6-2c1.6-.9 2.6-2.4 2.6-4.2z"/>
+            <circle cx="19.4" cy="15.6" r=".8" fill="#fff"/><circle cx="24" cy="15.6" r=".8" fill="#fff"/>
+          </svg>
+        </div>
+        <div class="wc-body">
+          <div class="wc-t">微信公众号</div>
+          <div class="wc-name">NGZ南歌</div>
+          <div class="wc-d">关注微信公众号：NGZ南歌，获取版本动态与学习资料</div>
+        </div>
+        <button class="btn sm" id="copyWx">复制 ID</button>
+      </div>
+
+      <div class="about-foot">学而时习之，不亦说乎<br><span>融会贯通 V ${APP_VERSION} · ${APP_EDITION}版</span></div>`;
+    $("#copyWx").addEventListener("click", async () => {
+      try { await copyText("NGZ南歌"); toast("已复制公众号：NGZ南歌"); }
+      catch (e) { toast("复制失败，请手动关注：NGZ南歌"); }
+    });
   }
 
   route();
