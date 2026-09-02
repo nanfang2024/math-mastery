@@ -3,17 +3,108 @@
  * 学习路径 + 学习页 + 练习 + 薄弱点复习 + 通关门禁 + 进度持久化
  * ============================================================ */
 (function () {
-  const KEY = "mathMastery.v1";
-  const APP_VERSION = "1.0.0";
+  const KEY = "mathMastery.v2";   // v2: 新增 starred/dailyLog/stats/freeMode
+  const APP_VERSION = "1.1.0";
   const APP_EDITION = "砚墨";
   const APP_BUILD = "2026-09-02";
   const $ = sel => document.querySelector(sel);
   const view = () => document.getElementById("view");
 
-  function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+  function load() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(KEY)) || {};
+      raw.starred = raw.starred || [];
+      raw.dailyLog = raw.dailyLog || [];
+      raw.stats = raw.stats || { answered: 0, correct: 0, timeSec: 0 };
+      raw.freeMode = !!raw.freeMode;
+      // 从 v1 迁移旧数据
+      const oldKey = "mathMastery.v1";
+      if (!raw._migrated && localStorage.getItem(oldKey)) {
+        const old = JSON.parse(localStorage.getItem(oldKey)) || {};
+        Object.keys(old).forEach(id => { if (!raw[id]) raw[id] = old[id]; });
+        raw._migrated = true;
+      }
+      return raw;
+    } catch (e) { return { starred: [], dailyLog: [], stats: { answered: 0, correct: 0, timeSec: 0 }, freeMode: false }; }
+  }
   function save(s) { localStorage.setItem(KEY, JSON.stringify(s)); }
-  let state = load(); // { [id]: { mastered:bool, weak:{ [qidx]:{fails,clear} } } }
-  let pendingScrollTech = null; // 返回路径时，定位并高亮到此技巧节点
+  let state = load();
+  let pendingScrollTech = null;
+
+  /* ---- 学习打卡与统计 ---- */
+  function todayStr() { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+  function logDaily() { const t = todayStr(); if (!state.dailyLog.includes(t)) { state.dailyLog.push(t); state.dailyLog.sort(); save(state); } }
+  function streakDays() {
+    if (!state.dailyLog.length) return 0;
+    const days = state.dailyLog.slice().sort();
+    let streak = 1;
+    for (let i = days.length - 1; i > 0; i--) {
+      const d1 = new Date(days[i]), d2 = new Date(days[i - 1]);
+      const diff = Math.round((d1 - d2) / 86400000);
+      if (diff === 1) streak++; else break;
+    }
+    if (!state.dailyLog.includes(todayStr()) && days.length) {
+      const last = new Date(days[days.length - 1]);
+      const diff = Math.round((new Date() - last) / 86400000);
+      return diff === 1 ? streak : 0;
+    }
+    return state.dailyLog.includes(todayStr()) ? streak : 0;
+  }
+  function addStat(isCorrect, timeSec) {
+    if (!state.stats) state.stats = { answered: 0, correct: 0, timeSec: 0 };
+    state.stats.answered++;
+    if (isCorrect) state.stats.correct++;
+    state.stats.timeSec += timeSec || 0;
+    save(state);
+  }
+
+  /* ---- 收藏夹 ---- */
+  function starKey(techId, qidx) { return techId + "::" + qidx; }
+  function toggleStar(techId, qidx) {
+    const k = starKey(techId, qidx);
+    const i = state.starred.indexOf(k);
+    if (i >= 0) state.starred.splice(i, 1); else state.starred.push(k);
+    save(state);
+    return i < 0;
+  }
+  function isStarred(techId, qidx) { return state.starred.indexOf(starKey(techId, qidx)) >= 0; }
+  function starredCount() { return state.starred.length; }
+
+  /* ---- 进度导出/导入 ---- */
+  function exportProgress() {
+    const data = JSON.stringify(state, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "方寸数学-学习进度-" + todayStr() + ".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    toast("进度已导出，可发送给家长或老师查看");
+  }
+  function importProgress(file) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const imported = JSON.parse(reader.result);
+        if (!imported || typeof imported !== "object") throw new Error("格式不对");
+        if (confirm("导入将覆盖当前进度，确定继续？")) {
+          state = imported;
+          state.starred = state.starred || [];
+          state.dailyLog = state.dailyLog || [];
+          state.stats = state.stats || { answered: 0, correct: 0, timeSec: 0 };
+          state.freeMode = !!state.freeMode;
+          save(state); toast("进度已导入"); route();
+        }
+      } catch (e) { toast("文件格式不对，请选择导出的 JSON 文件"); }
+    };
+    reader.readAsText(file);
+  }
+
+  /* ---- 解锁模式切换 ---- */
+  function setFreeMode(on) {
+    state.freeMode = on; save(state);
+    toast(on ? "已切换为自由探索模式" : "已切换为顺序解锁模式");
+  }
 
   /* ---- 解锁规则（按年级动态计算，单一事实来源）----
    * 小学 1–6 年级、初中初一/初二（7、8 年级）：
@@ -34,7 +125,10 @@
 
   function tech(id) { return TECHNIQUES.find(t => t.id === id); }
   function tstate(id) { if (!state[id]) state[id] = { mastered: false, weak: {} }; return state[id]; }
-  function unlocked(id) { const t = tech(id); return !t.prereq || !!(state[t.prereq] && state[t.prereq].mastered); }
+  function unlocked(id) {
+    if (state.freeMode) return true;               // 自由探索：全部开放
+    const t = tech(id); return !t.prereq || !!(state[t.prereq] && state[t.prereq].mastered);
+  }
   function weakCount() { let n = 0; for (const id in state) for (const k in state[id].weak) if (!state[id].weak[k].cleared) n++; return n; }
   function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
   function gradeNum(g) { const m = { "一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10, "十一": 11, "十二": 12 }; const x = /([一二三四五六七八九十]+)年级/.exec(g || ""); return x ? (m[x[1]] || 99) : 99; }
@@ -95,6 +189,7 @@
     if (cur === "practice") return renderQuiz(parts[1], "practice");
     if (cur === "gate") return renderQuiz(parts[1], "gate");
     if (cur === "review") return renderReview();
+    if (cur === "favorites") return renderFavorites();
     if (cur === "progress") return renderProgress();
     if (cur === "resources") return renderResources();
     if (cur === "about") return renderAbout();
