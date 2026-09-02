@@ -1,0 +1,9 @@
+fang.cun.math.debug:style/Theme.FangCun = 0x7f050000
+fang.cun.math.debug:string/app_name = 0x7f040000
+fang.cun.math.debug:color/topbar = 0x7f010002
+fang.cun.math.debug:color/topbar_dk = 0x7f010003
+fang.cun.math.debug:mipmap/ic_launcher = 0x7f030000
+fang.cun.math.debug:color/paper = 0x7f010001
+fang.cun.math.debug:mipmap/ic_launcher_round = 0x7f030001
+fang.cun.math.debug:drawable/ic_launcher_fg = 0x7f020000
+fang.cun.math.debug:color/ic_launcher_bg = 0x7f010000

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="topbar">#22355F</color>
+    <color name="topbar_dk">#1C2C55</color>
+    <color name="paper">#F4EFE3</color>
+    <color name="ic_launcher_bg">#2C477F</color>
+</resources>

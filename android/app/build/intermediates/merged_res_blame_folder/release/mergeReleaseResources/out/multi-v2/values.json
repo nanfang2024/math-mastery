@@ -1,0 +1,62 @@
+{
+    "logs": [
+        {
+            "outputFile": "fang.cun.math.app-mergeReleaseResources-2:/values/values.xml",
+            "map": [
+                {
+                    "source": "/workspace/android/app/src/main/res/values/themes.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "7",
+                        "endColumns": "12",
+                        "endOffsets": "412"
+                    },
+                    "to": {
+                        "startLines": "7",
+                        "startColumns": "4",
+                        "startOffsets": "271",
+                        "endLines": "12",
+                        "endColumns": "12",
+                        "endOffsets": "628"
+                    }
+                },
+                {
+                    "source": "/workspace/android/app/src/main/res/values/strings.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "41",
+                        "endOffsets": "92"
+                    },
+                    "to": {
+                        "startLines": "6",
+                        "startColumns": "4",
+                        "startOffsets": "229",
+                        "endColumns": "41",
+                        "endOffsets": "266"
+                    }
+                },
+                {
+                    "source": "/workspace/android/app/src/main/res/values/colors.xml",
+                    "from": {
+                        "startLines": "5,4,2,3",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "180,140,55,96",
+                        "endColumns": "48,39,40,43",
+                        "endOffsets": "224,175,91,135"
+                    },
+                    "to": {
+                        "startLines": "2,3,4,5",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "55,104,144,185",
+                        "endColumns": "48,39,40,43",
+                        "endOffsets": "99,139,180,224"
+                    }
+                }
+            ]
+        }
+    ]
+}

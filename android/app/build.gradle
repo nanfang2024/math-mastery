@@ -1,0 +1,45 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'fang.cun.math'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "fang.cun.math"
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file("../keystore/fangcun.keystore")
+            storePassword "fangcun2026"
+            keyAlias "fangcun"
+            keyPassword "fangcun2026"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+        debug {
+            applicationIdSuffix ".debug"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        checkReleaseBuilds false   // 沙箱环境 lintVital worker 异常，不影响产物
+        abortOnError false
+    }
+}

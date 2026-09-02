@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_bg">#2C477F</color>
+    <color name="paper">#F4EFE3</color>
+    <color name="topbar">#22355F</color>
+    <color name="topbar_dk">#1C2C55</color>
+    <string name="app_name">方寸数学</string>
+    <style name="Theme.FangCun" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@color/topbar</item>
+        <item name="android:navigationBarColor">@color/topbar_dk</item>
+        <item name="android:windowBackground">@color/paper</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

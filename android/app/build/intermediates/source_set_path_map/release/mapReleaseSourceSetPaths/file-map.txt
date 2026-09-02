@@ -1,0 +1,7 @@
+fang.cun.math.app-pngs-0 /workspace/android/app/build/generated/res/pngs/release
+fang.cun.math.app-resValues-1 /workspace/android/app/build/generated/res/resValues/release
+fang.cun.math.app-packageReleaseResources-2 /workspace/android/app/build/intermediates/incremental/release/packageReleaseResources/merged.dir
+fang.cun.math.app-packageReleaseResources-3 /workspace/android/app/build/intermediates/incremental/release/packageReleaseResources/stripped.dir
+fang.cun.math.app-release-4 /workspace/android/app/build/intermediates/merged_res/release/mergeReleaseResources
+fang.cun.math.app-main-5 /workspace/android/app/src/main/res
+fang.cun.math.app-release-6 /workspace/android/app/src/release/res
