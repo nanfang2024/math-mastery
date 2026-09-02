@@ -1916,6 +1916,268 @@
   }
 
   /* ============================================================
+   * 直线与圆的方程（必修二）
+   * ============================================================ */
+  function qCircleEq(n) {
+    const results = [];
+    for (let i = 0; i < n; i++) {
+      const type = i % 4;
+      let q, ans, o, exp;
+      if (type === 0) {
+        // 圆心半径 → 标准方程
+        const a = rnd(-5, 5), b = rnd(-5, 5), r = pick([2, 3, 4, 5]);
+        const fx = v => v === 0 ? "x²" : v > 0 ? `(x − ${v})²` : `(x + ${-v})²`;
+        const fy = v => v === 0 ? "y²" : v > 0 ? `(y − ${v})²` : `(y + ${-v})²`;
+        ans = `${fx(a)} + ${fy(b)} = ${r * r}`;
+        o = opts(ans, () => `${fx(a)} + ${fx(b)} = ${r * r}`, () => `${fx(a)} + ${fy(-b)} = ${r * r}`, () => `${fx(a)} + ${fy(b)} = ${r}`);
+        q = `圆心为 (${a}, ${b})、半径为 ${r} 的圆的标准方程是？`;
+        exp = `标准方程 (x−a)²+(y−b)²=r²：圆心 (${a},${b})、半径 ${r}，代入得 ${ans}。`;
+      } else if (type === 1) {
+        // 点与圆的位置（勾股整数距离）
+        const tri = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13]]);
+        const [dx, dy, d] = tri;
+        const rel = pick([["内", -1], ["上", 0], ["外", 1]]);
+        // 点在圆内 → r > d；圆上 → r = d；圆外 → r < d
+        const r = rel[1] === 0 ? d : (rel[1] < 0 ? d + 1 : d - 1);
+        const pos = rel[0] === "内" ? "圆内" : rel[0] === "上" ? "圆上" : "圆外";
+        ans = `点在${pos}`;
+        const others = ["圆内", "圆上", "圆外"].filter(p => p !== pos);
+        o = opts(ans, () => `点在${others[0]}`, () => `点在${others[1]}`, () => "无法确定");
+        q = `圆 x² + y² = ${r * r}，点 (${dx}, ${dy}) 与圆的位置关系是？`;
+        exp = `点到圆心（原点）距离 d = √(${dx}²+${dy}²) = ${d}，半径 r = ${r}，d ${rel[1] < 0 ? "<" : rel[1] === 0 ? "=" : ">"} r，故点在${pos}。`;
+      } else if (type === 2) {
+        // 弦长：垂径定理（勾股数组）
+        const tri = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13]]);
+        const [d, half, r] = tri;
+        const chord = 2 * half;
+        ans = chord;
+        o = opts(chord, () => chord + 2, () => 2 * r, () => r - d);
+        q = `圆的半径为 ${r}，弦心距为 ${d}，该弦的长是？`;
+        exp = `垂径定理：半弦² + 弦心距² = 半径²，半弦 = √(${r}² − ${d}²) = ${half}，弦长 = 2×${half} = ${chord}。`;
+      } else {
+        // 两平行线距离（3x+4y+c 型，距离为整数）
+        const c1 = rnd(-5, 5);
+        const k = rnd(1, 4);
+        const c2 = c1 + 5 * k;
+        ans = k;
+        o = opts(k, () => k + 1, () => 5 * k, () => k + 2);
+        q = `两平行直线 3x + 4y + ${c1} = 0 与 3x + 4y + ${c2} = 0 的距离是？`;
+        exp = `距离 = |${c1} − ${c2}| ÷ √(3²+4²) = ${5 * k} ÷ 5 = ${k}。`;
+      }
+      results.push(Q(q, o, "基础", exp, "直线与圆的方程", { type, ans: String(ans) }));
+    }
+    return results;
+  }
+
+  /* ============================================================
+   * 解三角形（正弦定理与余弦定理，必修五）
+   * ============================================================ */
+  function qSolveTri(n) {
+    // 余弦定理整数三元组：(b, c, a, A)，A=60°: a²=b²+c²−bc；A=120°: a²=b²+c²+bc
+    const T60 = [[3, 8, 7], [5, 8, 7], [7, 15, 13], [8, 15, 13], [16, 21, 19]];
+    const T120 = [[3, 5, 7], [7, 8, 13], [5, 16, 19]];
+    const results = [];
+    for (let i = 0; i < n; i++) {
+      const type = i % 4;
+      let q, ans, o, exp;
+      if (type === 0) {
+        const A = Math.random() < 0.5 ? 60 : 120;
+        const pool = A === 60 ? T60 : T120;
+        let [b, c, a] = pick(pool);
+        if (Math.random() < 0.5) { const t = b; b = c; c = t; }
+        ans = a;
+        o = opts(a, () => a + 1, () => a - 1, () => b + c);
+        q = `△ABC 中，b=${b}，c=${c}，∠A=${A}°，则边 a = ？`;
+        const sign = A === 60 ? "−" : "+";
+        exp = `余弦定理：a² = b² + c² − 2bc·cosA = ${b}² + ${c}² − 2×${b}×${c}×${A === 60 ? "(1/2)" : "(−1/2)"} = ${b * b} + ${c * c} ${sign} ${b * c} = ${a * a}，a = ${a}。`;
+      } else if (type === 1) {
+        // 正弦定理 2R：A=30° → 2R=2a；A=90° → 2R=a
+        const a = pick([4, 6, 8, 10]);
+        const A = pick([30, 90]);
+        ans = A === 30 ? 2 * a : a;
+        o = opts(ans, () => a, () => 2 * a, () => a / 2);
+        q = `△ABC 中，∠A = ${A}°，其对边 a = ${a}，则外接圆直径 2R = ？`;
+        exp = A === 30
+          ? `正弦定理 a/sinA = 2R：2R = ${a} ÷ sin30° = ${a} ÷ (1/2) = ${2 * a}。`
+          : `正弦定理 a/sinA = 2R：2R = ${a} ÷ sin90° = ${a} ÷ 1 = ${a}。`;
+      } else if (type === 2) {
+        // 面积 S = (1/2)bc sinA，A=30° → bc/4
+        const b = 4 * rnd(1, 4), c = rnd(2, 9);
+        const S = b * c / 4;
+        ans = S;
+        o = opts(S, () => b * c / 2, () => S + 1, () => b + c);
+        q = `△ABC 中，b=${b}，c=${c}，∠A=30°，则△ABC 的面积是？`;
+        exp = `S = (1/2)·b·c·sinA = (1/2)×${b}×${c}×(1/2) = ${b * c}/4 = ${S}。`;
+      } else {
+        // 大边对大角
+        const items = [
+          ["△ABC 中 a>b，则？", "A > B", ["A < B", "A = B", "无法比较"]],
+          ["△ABC 中 ∠A > ∠B，则？", "a > b", ["a < b", "a = b", "c 最大"]],
+          ["直角三角形中最大的边是？", "斜边", ["最短直角边", "较长直角边", "不能确定"]],
+        ];
+        const it = pick(items);
+        ans = it[1];
+        o = opts(ans, () => it[2][0], () => it[2][1], () => it[2][2]);
+        q = it[0];
+        exp = `三角形中大边对大角、大角对大边；本题答案是「${ans}」。`;
+      }
+      results.push(Q(q, o, "基础", exp, "解三角形", { type, ans: String(ans) }));
+    }
+    return results;
+  }
+
+  /* ============================================================
+   * 三角函数图像 y=Asin(ωx+φ)（必修四）
+   * ============================================================ */
+  function qTrigGraph(n) {
+    const results = [];
+    for (let i = 0; i < n; i++) {
+      const type = i % 4;
+      let q, ans, o, exp;
+      if (type === 0) {
+        // 周期
+        const A = rnd(2, 5), w = rnd(2, 4);
+        const per = `2π/${w}`;
+        ans = per;
+        o = opts(per, () => `2π/${w + 1}`, () => `π/${w}`, () => `2π/${A}`);
+        q = `y = ${A}sin(${w}x + π/3) 的最小正周期是？`;
+        exp = `T = 2π/ω = 2π/${w}。振幅 ${A} 与相位 π/3 不影响周期。`;
+      } else if (type === 1) {
+        // 平移
+        const k = rnd(1, 5);
+        const dir = Math.random() < 0.5;
+        ans = dir ? `向左平移 π/${k} 个单位` : `向右平移 π/${k} 个单位`;
+        o = opts(ans, () => dir ? `向右平移 π/${k} 个单位` : `向左平移 π/${k} 个单位`, () => `向上平移 π/${k} 个单位`, () => `向左平移 ${k} 个单位`);
+        q = `y = sin(x ${dir ? "+" : "−"} π/${k}) 的图像可由 y = sinx 的图像怎样得到？`;
+        exp = `自变量 x ${dir ? "+" : "−"} π/${k}，按「左加右减」${dir ? "向左" : "向右"}平移 π/${k} 个单位，即${ans}。`;
+      } else if (type === 2) {
+        // 值域
+        const A = rnd(2, 5), k = rnd(1, 4);
+        const max = A + k, min = k - A;
+        const askMax = Math.random() < 0.5;
+        ans = askMax ? max : min;
+        o = opts(ans, () => askMax ? min : max, () => askMax ? A : -A, () => askMax ? max + 1 : min - 1);
+        q = `y = ${A}sin(2x + π/6) + ${k} 的${askMax ? "最大" : "最小"}值是？`;
+        exp = `sin 的取值范围是 [−1, 1]，${askMax ? "最大" : "最小"}值 = ${A}×${askMax ? "1" : "(−1)"} + ${k} = ${ans}。`;
+      } else {
+        // 振幅与概念
+        const A = rnd(2, 6), w = rnd(2, 5);
+        const items = [
+          [`y = ${A}sin(${w}x + π/6) 的振幅是？`, String(A), [String(A + 1), String(w), "1"]],
+          ["y=Asin(ωx+φ) 中 |A| 的意义是？", "振幅（离开平衡位置的最大距离）", ["周期", "频率", "初相"]],
+          ["y=sin2x 的图像关于谁对称（其一）？", "原点", ["直线 x=1", "点 (1,0)", "y 轴"]],
+        ];
+        const it = pick(items);
+        ans = it[1];
+        o = opts(ans, () => it[2][0], () => it[2][1], () => it[2][2]);
+        q = it[0];
+        exp = `y=Asin(ωx+φ)：|A| 是振幅，ω 决定周期 2π/ω，φ 是初相；本题答案是「${ans}」。`;
+      }
+      results.push(Q(q, o, "基础", exp, "三角函数图像", { type, ans: String(ans) }));
+    }
+    return results;
+  }
+
+  /* ============================================================
+   * 空间几何体的表面积与体积（必修二）
+   * ============================================================ */
+  function qSolidVol(n) {
+    const results = [];
+    for (let i = 0; i < n; i++) {
+      const type = i % 4;
+      let q, ans, o, exp;
+      if (type === 0) {
+        // 柱体体积
+        const S = rnd(2, 12), h = rnd(2, 9);
+        const V = S * h;
+        ans = V;
+        o = opts(V, () => V + S, () => V / 3, () => S + h);
+        q = `一个柱体的底面积为 ${S}，高为 ${h}，体积是？`;
+        exp = `柱体体积 V = S·h = ${S}×${h} = ${V}。`;
+      } else if (type === 1) {
+        // 锥体体积（保证整除）
+        const S = 3 * rnd(1, 5), h = rnd(2, 9);
+        const V = S * h / 3;
+        ans = V;
+        o = opts(V, () => S * h, () => V + 1, () => S + h);
+        q = `一个锥体的底面积为 ${S}，高为 ${h}，体积是？`;
+        exp = `锥体体积 V = (1/3)·S·h = ${S}×${h}÷3 = ${V}。`;
+      } else if (type === 2) {
+        // 球的体积与表面积（r 取 3 的倍数保证 (4/3)πr³ 为整数系数）
+        const r = pick([3, 6]);
+        const askV = Math.random() < 0.5;
+        const V = (4 / 3) * r * r * r;
+        const A = 4 * r * r;
+        ans = askV ? `${V}π` : `${A}π`;
+        o = opts(ans, () => askV ? `${A}π` : `${V}π`, () => askV ? `${V * 2}π` : `${A / 2}π`, () => `${r}π`);
+        q = `半径为 ${r} 的球的${askV ? "体积" : "表面积"}是？`;
+        exp = askV
+          ? `V = (4/3)πr³ = (4/3)×π×${r}³ = ${V}π。`
+          : `S = 4πr² = 4×π×${r}² = ${A}π。`;
+      } else {
+        // 圆柱侧面积
+        const r = rnd(1, 5), h = rnd(2, 8);
+        const v = 2 * r * h;
+        ans = `${v}π`;
+        o = opts(ans, () => `${v}π²`, () => `${r * h}π`, () => `${v + 2}π`);
+        q = `底面半径为 ${r}、高为 ${h} 的圆柱的侧面积是？`;
+        exp = `侧面展开是矩形：S侧 = 2πrh = 2×π×${r}×${h} = ${v}π。`;
+      }
+      results.push(Q(q, o, "基础", exp, "几何体体积与表面积", { type, ans: String(ans) }));
+    }
+    return results;
+  }
+
+  /* ============================================================
+   * 古典概型与几何概型（必修三）
+   * ============================================================ */
+  function qClassical(n) {
+    const results = [];
+    for (let i = 0; i < n; i++) {
+      const type = i % 4;
+      let q, ans, o, exp;
+      if (type === 0) {
+        // 摸球（构造 red 与 blue 互质，答案即为最简分数）
+        let red = rnd(2, 6), blue = rnd(2, 6);
+        const g0 = (x, y) => y ? g0(y, x % y) : x;
+        while (g0(red, blue) !== 1) { red = rnd(2, 6); blue = rnd(2, 6); }
+        const tot = red + blue;
+        ans = `${red}/${tot}`;
+        o = opts(ans, () => `${blue}/${tot}`, () => `${red}/${blue}`, () => `${red + 1}/${tot}`);
+        q = `袋中有 ${red} 个红球、${blue} 个蓝球，随机摸一个，摸到红球的概率是？`;
+        exp = `古典概型 P = 红球数 ÷ 总数 = ${red} ÷ ${tot} = ${red}/${tot}。`;
+      } else if (type === 1) {
+        // 掷骰子
+        const k = rnd(2, 5);
+        const cnt = 7 - k;
+        ans = `${cnt}/6`;
+        o = opts(ans, () => `${cnt - 1}/6`, () => `${k}/6`, () => `${cnt}/7`);
+        q = `掷一枚骰子，点数大于 ${k - 1}（即 ≥ ${k}）的概率是？`;
+        exp = `满足的点数：${Array.from({ length: cnt }, (_, j) => k + j).join("、")}，共 ${cnt} 个，P = ${cnt}/6。`;
+      } else if (type === 2) {
+        // 几何概型（长度型）
+        const parts = rnd(2, 5);
+        const b = rnd(1, parts - 1);
+        ans = `${b}/${parts}`;
+        o = opts(ans, () => `${parts - b}/${parts}`, () => `${b}/${parts + 1}`, () => `${b + 1}/${parts}`);
+        q = `在区间 [0, ${parts}] 上随机取一点，该点落在 [0, ${b}] 内的概率是？`;
+        exp = `几何概型（长度比）：P = ${b} ÷ ${parts} = ${b}/${parts}。`;
+      } else {
+        // 对立事件（构造 p 与 den 互质，答案为最简分数）
+        const g1 = (x, y) => y ? g1(y, x % y) : x;
+        let p = rnd(1, 4), den = p + rnd(1, 5);
+        while (g1(p, den) !== 1) { p = rnd(1, 4); den = p + rnd(1, 5); }
+        ans = `${den - p}/${den}`;
+        o = opts(ans, () => `${p}/${den}`, () => `${den - p}/${den + 1}`, () => `${den + p}/${den}`);
+        q = `某事件 A 发生的概率为 ${p}/${den}，则 A 不发生的概率是？`;
+        exp = `对立事件：P(Ā) = 1 − ${p}/${den} = (${den} − ${p})/${den} = ${den - p}/${den}。`;
+      }
+      results.push(Q(q, o, "基础", exp, "古典概型与几何概型", { type, ans: String(ans) }));
+    }
+    return results;
+  }
+
+  /* ============================================================
    * 注册到 window.TECHNIQUES
    * ============================================================ */
   const GEN = {
@@ -1974,7 +2236,12 @@
     conic_link: qConicLink,
     conic_chord: qConicChord,
     conic_prop: qConicProp,
-    param_eq: qParamEq
+    param_eq: qParamEq,
+    circle_eq: qCircleEq,
+    solve_tri: qSolveTri,
+    trig_graph: qTrigGraph,
+    solid_vol: qSolidVol,
+    classical: qClassical
   };
 
   if (window.TECHNIQUES) {

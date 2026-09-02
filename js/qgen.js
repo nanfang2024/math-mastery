@@ -445,9 +445,256 @@
   };
 
   /* ============================================================
+   * 11. 单位换算（长度 / 质量 / 面积 / 时间）
+   * ============================================================ */
+  // opts4(ans, mk1, mk2, mk3)：正确答 + 3 个干扰项生成器 → 4 个互异选项（打乱）
+  function opts4(ans, mk1, mk2, mk3) {
+    const set = new Set([String(ans)]);
+    [mk1, mk2, mk3].forEach(mk => { if (typeof mk === "function") { const v = String(mk()); if (!set.has(v)) set.add(v); } });
+    let k = 1;
+    while (set.size < 4 && k < 50) {
+      const num = Number(ans);
+      let v;
+      if (Number.isFinite(num)) v = String(num + k);
+      else { const m = String(ans).match(/-?\d+/); v = m ? String(ans).replace(m[0], String(parseInt(m[0], 10) + k)) : null; }
+      if (v != null && !set.has(v)) set.add(v);
+      k++;
+    }
+    const arr = shuffle([...set]);
+    return { opts: arr, ans: arr.indexOf(String(ans)) };
+  }
+
+  function qUnitConv() {
+    const cats = [
+      { name: "长度", units: [["千米", "米", 1000], ["米", "分米", 10], ["分米", "厘米", 10], ["米", "厘米", 100], ["厘米", "毫米", 10]] },
+      { name: "质量", units: [["吨", "千克", 1000], ["千克", "克", 1000]] },
+      { name: "面积", units: [["平方米", "平方分米", 100], ["平方分米", "平方厘米", 100], ["平方米", "平方厘米", 10000]] },
+      { name: "时间", units: [["时", "分", 60], ["分", "秒", 60]] }
+    ];
+    const cat = pick(cats);
+    const [big, small, rate] = pick(cat.units);
+    const up = Math.random() < 0.5; // true: 大→小（乘进率）
+    let v, ans;
+    if (up) { v = rnd(2, 9); ans = v * rate; }
+    else { v = rnd(2, 9) * rate; ans = v / rate; }
+    const o = opts(ans, () => pick([ans * 10, ans * 100, Math.round(ans / 10), Math.round(ans / 100), ans + rate, ans - rate].filter(x => x > 0 && x !== ans)));
+    const q = `${v} ${big} = ? ${small}`;
+    const exp = `1 ${big} = ${rate} ${small}，${v} ${big} = ${v} ${up ? "×" : "÷"} ${rate} = ${ans} ${small}。`;
+    return Q(q, o, "基础", exp, "单位换算", { cat: cat.name, big, small, rate, v, ans, up });
+  }
+
+  /* ============================================================
+   * 12. 时间与日期（经过时间 / 24 时计时 / 闰年 / 星期周期）
+   * ============================================================ */
+  function qTimeCalc() {
+    const type = rnd(0, 3);
+    let q, ans, o, exp, fig;
+    if (type === 0) {
+      // 经过时间：时刻 + 时分
+      const h1 = rnd(7, 20), m1 = pick([0, 10, 15, 20, 30, 40, 45]);
+      const dh = rnd(1, 4), dm = pick([10, 15, 20, 30, 40, 50]);
+      let mh = m1 + dm, carry = 0;
+      if (mh >= 60) { mh -= 60; carry = 1; }
+      const h2 = h1 + dh + carry;
+      const disp = n => String(n).padStart(2, "0");
+      const ansStr = `${disp(h2)}:${disp(mh)}`;
+      const oSet = new Set([ansStr]);
+      let k = 5;
+      while (oSet.size < 4 && k < 200) {
+        const hh = (h2 + (k % 3 - 1) + 24) % 24, mm = (mh + (k % 2 ? 10 : -10) + 60) % 60;
+        oSet.add(`${disp(hh)}:${disp(mm)}`); k += 7;
+      }
+      const arr = shuffle([...oSet]);
+      o = { opts: arr, ans: arr.indexOf(ansStr) };
+      q = `${h1} 时 ${m1} 分出发，路上用了 ${dh} 小时 ${dm} 分，到达时刻是？`;
+      exp = `${h1} 时 ${m1} 分 + ${dh} 小时 = ${h1 + dh} 时 ${m1} 分；再加 ${dm} 分：${m1} + ${dm} = ${m1 + dm}${carry ? `，满 60 分进 1 时` : ""}，到达时刻是 ${ansStr}。`;
+      fig = { name: "none" };
+    } else if (type === 1) {
+      // 24 时计时法
+      const h = rnd(1, 11);
+      ans = h + 12;
+      o = opts4(ans, () => ans + rnd(1, 4), () => ans - rnd(1, 4), () => h);
+      q = `下午 ${h} 时用 24 时计时法表示是几时？`;
+      exp = `下午时刻加 12：${h} + 12 = ${ans}，即 ${ans} 时。`;
+    } else if (type === 2) {
+      // 闰年 2 月天数
+      const isLeap = Math.random() < 0.5;
+      let y;
+      if (isLeap) y = pick([2000, 2020, 2024, 2028, 1600, 2400, 2016].map(x => x + rnd(0, 3) * 0)); // 保持整百年/普通闰年
+      else y = pick([1900, 2021, 2022, 2023, 2010, 2015, 2100]);
+      const leap = (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+      ans = leap ? 29 : 28;
+      o = opts4(ans, () => leap ? 28 : 29, () => 30, () => 31);
+      q = `${y} 年的 2 月有多少天？`;
+      exp = `${y} ${leap ? `能被 4 整除${y % 100 === 0 ? "且能被 400 整除" : "且不能被 100 整除"}，是闰年` : y % 4 !== 0 ? `不能被 4 整除，是平年` : `能被 4 整除但${y % 400 === 0 ? "" : "不能被 400 整除（整百年必须被 400 整除）"}，是平年`}，2 月有 ${ans} 天。`;
+    } else {
+      // 星期周期
+      const wd = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+      const d0 = rnd(0, 6);          // 1 日的星期
+      const day = rnd(10, 28);       // 问几日
+      const target = (d0 + (day - 1)) % 7;
+      ans = wd[target];
+      const arr = shuffle(wd.slice(0, 4).map((_, i) => wd[(target + i) % 7]));
+      o = { opts: arr, ans: arr.indexOf(ans) };
+      q = `某月 1 日是${wd[d0]}，这个月 ${day} 日是星期几？`;
+      const rem = (day - 1) % 7;
+      exp = `过了 ${day - 1} 天，${day - 1} ÷ 7 = ${Math.floor((day - 1) / 7)} 余 ${rem}，从${wd[d0]}往后数 ${rem} 天（余 0 仍是${wd[d0]}），是${ans}。`;
+    }
+    return Q(q, o, "基础", exp, "时间与日期", fig || null);
+  }
+
+  /* ============================================================
+   * 13. 因数倍数（最大公因数 / 最小公倍数 + 剪纸 / 发车应用）
+   * ============================================================ */
+  function qGcdLcm() {
+    const coprimePairs = [[1, 2], [1, 3], [2, 3], [3, 4], [2, 5], [3, 5], [4, 5], [5, 6], [2, 7], [3, 7], [4, 7], [5, 7], [6, 7], [3, 8], [5, 8], [7, 8]];
+    const g = rnd(2, 9);
+    const [m1, m2] = pick(coprimePairs);
+    const a = g * m1, b = g * m2;
+    const G = g, L = g * m1 * m2;
+    const type = rnd(0, 3);
+    let q, ans, o, exp;
+    if (type === 0) {
+      ans = G;
+      o = opts4(ans, () => L, () => g + 1, () => g - 1);
+      q = `${a} 和 ${b} 的最大公因数是？`;
+      exp = `${a} = ${g}×${m1}，${b} = ${g}×${m2}，公因数只有 ${g}（${m1} 与 ${m2} 互质），最大公因数是 ${G}。`;
+    } else if (type === 1) {
+      ans = L;
+      o = opts4(ans, () => G, () => L + G, () => L * 2);
+      q = `${a} 和 ${b} 的最小公倍数是？`;
+      exp = `${a} = ${g}×${m1}，${b} = ${g}×${m2}，最小公倍数 = ${g}×${m1}×${m2} = ${L}。`;
+    } else if (type === 2) {
+      // 剪最大正方形
+      ans = G;
+      o = opts4(ans, () => L, () => G * 2, () => Math.min(a, b));
+      q = `一张长 ${a} 厘米、宽 ${b} 厘米的长方形纸，剪成尽可能大的正方形且不许有剩余，正方形边长是？`;
+      exp = `边长必须同时整除 ${a} 和 ${b}，取最大公因数：${a} 与 ${b} 的最大公因数是 ${G}，边长 ${G} 厘米。`;
+    } else {
+      // 同时发车
+      ans = L;
+      o = opts4(ans, () => G, () => L + 10, () => L * 2);
+      q = `1 路车每 ${a} 分钟发一班，2 路车每 ${b} 分钟发一班，两车同时发车后，至少再过多少分钟又同时发车？`;
+      exp = `求最小公倍数：${a} 与 ${b} 的最小公倍数是 ${L}，再过 ${L} 分钟又同时发车。`;
+    }
+    return Q(q, o, "基础", exp, "最大公因数与最小公倍数", { a, b, g, m1, m2, G, L, type });
+  }
+
+  /* ============================================================
+   * 14. 分数乘除应用题（求分率 / 已知分率求原数）
+   * ============================================================ */
+  function qFracApp() {
+    const type = rnd(0, 2);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // 一个数的几分之几
+      const b = rnd(3, 9), c = rnd(1, b - 1);
+      const k = rnd(2, 6);
+      const n = b * k;
+      ans = c * k;
+      o = opts4(ans, () => ans + b, () => ans - c, () => n - ans);
+      q = `${n} 的 ${c}/${b} 是多少？`;
+      exp = `求一个数的几分之几用乘法：${n} × ${c}/${b} = ${n}×${c} ÷ ${b} = ${ans}。`;
+    } else if (type === 1) {
+      // 比 3/5 多 3/5
+      // 比 n 多 3/4
+      const b = rnd(3, 8), c = rnd(1, b - 1);
+      const k = rnd(2, 5);
+      const n = b * k;
+      ans = n + c * k;
+      o = opts4(ans, () => n - c * k, () => n, () => ans + b);
+      q = `比 ${n} 多 ${c}/${b} 的数是多少？`;
+      exp = `多 ${c}/${b} 就是多 ${n} × ${c}/${b} = ${c * k}，所以是 ${n} + ${c * k} = ${ans}。`;
+    } else {
+      // 已知 3/4 是 9
+      const b = rnd(2, 6), c = rnd(1, b - 1);
+      const k = rnd(2, 6);
+      const part = c * k;
+      ans = b * k;
+      o = opts4(ans, () => ans + c, () => part, () => Math.round(part / c * b));
+      q = `一个数的 ${c}/${b} 是 ${part}，这个数是多少？`;
+      exp = `已知一个数的几分之几是多少，求这个数用除法：${part} ÷ ${c}/${b} = ${part} × ${b}/${c} = ${ans}。`;
+    }
+    return Q(q, o, "基础", exp, "分数乘除应用", { type, ans });
+  }
+
+  /* ============================================================
+   * 15. 年龄问题（差不变 / 倍数关系）
+   * ============================================================ */
+  function qAge() {
+    const type = rnd(0, 2);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // 几年后是 2 倍：d = a − 2b > 0
+      const b = rnd(6, 14), d = rnd(2, 12);
+      const a = 2 * b + d;
+      ans = d;
+      o = opts4(ans, () => a - b, () => d + 1, () => d * 2);
+      q = `今年爸爸 ${a} 岁，儿子 ${b} 岁，几年后爸爸的年龄恰好是儿子的 2 倍？`;
+      exp = `设 ${d} 年后：爸爸 ${a}+${d}=${a + d} 岁，儿子 ${b}+${d}=${b + d} 岁，${a + d} = 2×${b + d}，恰好 2 倍，所以 ${d} 年后。`;
+    } else if (type === 1) {
+      // 年龄差不变
+      const b = rnd(8, 15), d = rnd(20, 30);
+      const a = b + d;
+      const y = pick([3, 5, 8, 10]);
+      ans = d;
+      o = opts4(ans, () => d + y, () => d - y, () => a);
+      q = `今年妈妈 ${a} 岁、女儿 ${b} 岁，${y} 年后两人相差几岁？`;
+      exp = `年龄差永远不变：${a} − ${b} = ${d}，${y} 年后仍然相差 ${d} 岁。`;
+    } else {
+      // 两人年龄和
+      const s = rnd(40, 60), d = rnd(2, 10);
+      const y = pick([3, 4, 5, 6]);
+      // 和为 s，差为 d：a=(s+d)/2, b=(s−d)/2 需同奇偶
+      const s2 = (d % 2 === 0) ? (s % 2 === 0 ? s : s + 1) : (s % 2 === 1 ? s : s + 1);
+      ans = s2 + 2 * y;
+      o = opts4(ans, () => s2 + y, () => s2, () => s2 + 3 * y);
+      q = `今年兄妹两人年龄和是 ${s2} 岁，${y} 年后两人年龄和是多少岁？`;
+      exp = `${y} 年后每人大 ${y} 岁，两人共大 ${2 * y} 岁，年龄和 = ${s2} + ${2 * y} = ${ans} 岁。`;
+    }
+    return Q(q, o, "进阶", exp, "年龄问题", { type, ans });
+  }
+
+  /* ============================================================
+   * 16. 还原问题（倒推法）
+   * ============================================================ */
+  function qRestore() {
+    const type = rnd(0, 2);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // (x + k) × m = R
+      const x = rnd(2, 12), k = rnd(2, 9), m = rnd(2, 5);
+      const R = (x + k) * m;
+      ans = x;
+      o = opts4(ans, () => x + k, () => R / m, () => x + m);
+      q = `一个数加上 ${k}，再乘 ${m}，结果是 ${R}。这个数是多少？`;
+      exp = `倒推：${R} ÷ ${m} = ${R / m}，再减 ${k}：${R / m} − ${k} = ${x}，这个数是 ${x}。`;
+    } else if (type === 1) {
+      // (x − k) ÷ m = R
+      const x = rnd(20, 60), k = rnd(2, 9), m = rnd(2, 4);
+      const R = (x - k) / m;
+      ans = x;
+      o = opts4(ans, () => R * m, () => x + k, () => R * m + k + 1);
+      q = `一个数减去 ${k}，再除以 ${m}，结果是 ${R}。这个数是多少？`;
+      exp = `倒推：${R} × ${m} = ${R * m}，再加 ${k}：${R * m} + ${k} = ${x}，这个数是 ${x}。`;
+    } else {
+      // 一半多 c
+      const rest = rnd(5, 20), c = rnd(1, 5);
+      const half = rest + c;
+      const total = half * 2;
+      ans = total;
+      o = opts4(ans, () => half, () => rest * 2, () => total + c);
+      q = `一堆苹果，拿走一半又 ${c} 个，还剩 ${rest} 个。这堆苹果原来有多少个？`;
+      exp = `倒推：剩 ${rest} 个前有 ${rest} + ${c} = ${half} 个（一半），原来共 ${half} × 2 = ${total} 个。`;
+    }
+    return Q(q, o, "进阶", exp, "还原问题（倒推法）", { type, ans });
+  }
+
+  /* ============================================================
    * 注册：把 qgen 挂到对应技巧上（引擎见 app.js renderQuiz）
    * ============================================================ */
-  const GEN = { chicken: qChicken, plant: qPlant, sumdiff: qSumDiff, profitloss: qProfit, average: qAvg, cycle: qCycle, guiyi: qGuiyi, engineer: qEngineer, meet: qMeet, chase: qChase };
+  const GEN = { chicken: qChicken, plant: qPlant, sumdiff: qSumDiff, profitloss: qProfit, average: qAvg, cycle: qCycle, guiyi: qGuiyi, engineer: qEngineer, meet: qMeet, chase: qChase,
+    unitconv: qUnitConv, timecalc: qTimeCalc, gcdlcm: qGcdLcm, frac_app: qFracApp, age: qAge, restore: qRestore };
   if (window.TECHNIQUES) {
     window.TECHNIQUES.forEach(t => {
       if (GEN[t.id]) {

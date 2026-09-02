@@ -619,6 +619,407 @@
   }
 
   /* ============================================================
+   * 17. 幂的运算与乘法公式（七下/八上）
+   * ============================================================ */
+  function qPowOps() {
+    const type = rnd(0, 3);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // 同底数幂
+      const m = rnd(2, 6);
+      const sub = Math.random() < 0.5;
+      const n = sub ? rnd(1, Math.max(1, m - 1)) : rnd(1, 5);
+      const e2 = sub ? m - n : m + n;
+      ans = `a^${e2}`;
+      o = opts(ans, () => `a^${sub ? m + n : m - n}`, () => `a^${m * n}`, () => `a^${e2 + 1}`);
+      q = sub ? `a^${m} ÷ a^${n} = ？` : `a^${m} · a^${n} = ？`;
+      exp = sub ? `同底数幂相除底数不变指数相减：${m} − ${n} = ${e2}，即 a^${e2}。` : `同底数幂相乘底数不变指数相加：${m} + ${n} = ${e2}，即 a^${e2}。`;
+    } else if (type === 1) {
+      // 平方差
+      const a = rnd(1, 9), b = rnd(1, 9);
+      const v = a * a - b * b;
+      ans = v;
+      o = opts(v, () => a * a + b * b, () => (a + b) * (a + b), () => a * a - b);
+      q = `(${a}+${b})(${a}−${b}) = ？`;
+      exp = `平方差公式：(a+b)(a−b)=a²−b²=${a}²−${b}²=${a * a}−${b * b}=${v}。`;
+    } else if (type === 2) {
+      // 完全平方
+      const a = rnd(1, 8), b = rnd(1, 8);
+      const plus = Math.random() < 0.5;
+      const v = a * a + b * b + (plus ? 2 * a * b : -2 * a * b);
+      ans = v;
+      o = opts(v, () => a * a + b * b, () => a * a + b * b + (plus ? -2 * a * b : 2 * a * b), () => v + 2);
+      q = `(${a}${plus ? "+" : "−"}${b})² = ？`;
+      exp = `完全平方公式：(a${plus ? "+" : "−"}b)²=a²${plus ? "+" : "−"}2ab+b²=${a * a}${plus ? "+" : "−"}${2 * a * b}+${b * b}=${v}。`;
+    } else {
+      // 零指数与负指数
+      const base = pick([2, 3, 5, 10]);
+      if (Math.random() < 0.5) {
+        ans = 1;
+        o = opts(1, () => 0, () => base, () => -1);
+        q = `(${base === 10 ? "2024" : base})⁰ = ？`;
+        exp = `任何非零数的 0 次幂等于 1，即 ${base === 10 ? "2024" : base}⁰ = 1。`;
+      } else {
+        const k = rnd(1, 3);
+        const den = Math.pow(base, k);
+        const val = `1/${den}`;
+        ans = val;
+        o = opts(val, () => `-${val}`, () => String(den), () => `1/${den / base}`);
+        q = `${base}^(-${k}) = ？`;
+        exp = `负指数化为正指数：${base}^(-${k}) = 1/${base}^${k} = 1/${den}。`;
+      }
+    }
+    return Q(q, o, "基础", exp, "幂的运算与乘法公式", { type, ans: String(ans) });
+  }
+
+  /* ============================================================
+   * 18. 因式分解（八上）
+   * ============================================================ */
+  function qFactor() {
+    const type = rnd(0, 3);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // 提公因式：ax + ay
+      const a = rnd(2, 9), x = rnd(2, 9), y = rnd(2, 9);
+      const num = Math.random() < 0.5;
+      if (num) {
+        ans = `${a}(x+${y})`;
+        o = opts(ans, () => `${a}(x+${y + 1})`, () => `${a + 1}(x+${y})`, () => `x(${a}+${y})`);
+        q = `${a}x + ${a * y} 分解因式得？`;
+        exp = `公因式是 ${a}：${a}x + ${a * y} = ${a}(x + ${y})。`;
+      } else {
+        ans = `${a}x(x+${y})`;
+        o = opts(ans, () => `${a}x(x+${y + 1})`, () => `${a}(x²+${y}x)`, () => `x(${a}x+${a * y})`);
+        q = `${a}x² + ${a * y}x 分解因式得？`;
+        exp = `公因式是 ${a}x：${a}x² + ${a * y}x = ${a}x(x + ${y})。`;
+      }
+    } else if (type === 1) {
+      // 平方差
+      const k = rnd(2, 9);
+      const sq = k * k;
+      ans = `(x+${k})(x−${k})`;
+      o = opts(ans, () => `(x+${k})²`, () => `(x−${k})²`, () => `(x+${sq})(x−${sq})`);
+      q = `x² − ${sq} 分解因式得？`;
+      exp = `${sq} = ${k}²，用平方差公式：x² − ${k}² = (x+${k})(x−${k})。`;
+    } else if (type === 2) {
+      // 完全平方
+      const k = rnd(2, 7);
+      const b = 2 * k;
+      ans = `(x+${k})²`;
+      o = opts(ans, () => `(x−${k})²`, () => `(x+${k + 1})²`, () => `(x+${k})(x−${k})`);
+      q = `x² + ${b}x + ${k * k} 分解因式得？`;
+      exp = `首末两项是平方项：x² 与 ${k}²，中间 ${b}=2×${k}，完全平方公式：x² + ${b}x + ${k * k} = (x+${k})²。`;
+    } else {
+      // 十字相乘：x² + (p+q)x + pq
+      const p = rnd(1, 6), q2 = rnd(1, 6);
+      const b = p + q2, c = p * q2;
+      ans = `(x+${p})(x+${q2})`;
+      o = opts(ans, () => `(x+${p + 1})(x+${q2 - 1})`, () => `(x+${p})(x−${q2})`, () => `(x+${b})(x+${c})`);
+      q = `x² + ${b}x + ${c} 分解因式得？`;
+      exp = `找两个数：积为 ${c}、和为 ${b}，即 ${p} 与 ${q2}，所以 x² + ${b}x + ${c} = (x+${p})(x+${q2})。`;
+    }
+    return Q(q, o, "基础", exp, "因式分解", { type, ans: String(ans) });
+  }
+
+  /* ============================================================
+   * 19. 二次根式（八下）
+   * ============================================================ */
+  function qSqrt3() {
+    const type = rnd(0, 3);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // √(a²·b) = a√b，b 无平方因子
+      const b = pick([2, 3, 5, 6, 7, 10, 11, 13, 15]);
+      const a = rnd(2, 6);
+      const inner = a * a * b;
+      ans = `${a}√${b}`;
+      o = opts(ans, () => `${a * a}√${b}`, () => `${a}√${b * b}`, () => `√${b * a}`);
+      q = `化简 √${inner} = ？`;
+      exp = `${inner} = ${a * a}×${b}，√${inner} = √${a * a} × √${b} = ${a}√${b}。`;
+    } else if (type === 1) {
+      // √a × √b
+      const a = pick([2, 3, 5, 6, 7]), b = pick([2, 3, 5, 6, 7, 8]);
+      const p = a * b;
+      // 化简：分离平方因子
+      const perf = [4, 9, 16, 25, 36, 49, 64].filter(x => p % x === 0);
+      let text;
+      if (perf.length) {
+        const sq = Math.max(...perf);
+        const rest = p / sq;
+        text = rest === 1 ? `${Math.sqrt(sq)}` : `${Math.sqrt(sq)}√${rest}`;
+      } else text = `√${p}`;
+      ans = text;
+      o = opts(text, () => `√${a}√${b}`, () => `√${p + 1}`, () => `${a + b}√${p}`);
+      q = `√${a} × √${b} = ？`;
+      exp = `√a×√b=√(ab)：√${a}×√${b}=√${p}${text !== `√${p}` ? `=${text}` : ""}。`;
+    } else if (type === 2) {
+      // 有意义的条件
+      const k = rnd(1, 9);
+      ans = `x ≥ ${k}`;
+      o = opts(ans, () => `x > ${k}`, () => `x ≤ ${k}`, () => `x ≥ ${-k}`);
+      q = `二次根式 √(x − ${k}) 有意义的条件是？`;
+      exp = `被开方数 ≥ 0：x − ${k} ≥ 0，即 x ≥ ${k}。`;
+    } else {
+      // (√a+√b)(√a−√b) = a − b
+      const a = rnd(2, 9), b = rnd(2, 9);
+      const v = a - b;
+      ans = v;
+      o = opts(v, () => a + b, () => `√${a * b}`, () => v - 1);
+      q = `(√${a} + √${b})(√${a} − √${b}) = ？`;
+      exp = `平方差：(√a)² − (√b)² = ${a} − ${b} = ${v}。`;
+    }
+    return Q(q, o, "基础", exp, "二次根式", { type, ans: String(ans) });
+  }
+
+  /* ============================================================
+   * 20. 分式及其运算（八下）
+   * ============================================================ */
+  function qFrac2() {
+    const type = rnd(0, 3);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // 约分：数值型
+      const g = rnd(2, 9), p = rnd(2, 9), r = rnd(2, 9);
+      const num = g * p, den = g * r;
+      // p、r 互质化
+      const gcd2 = (x, y) => y ? gcd2(y, x % y) : x;
+      const gg = gcd2(p, r);
+      const P = p / gg, R = r / gg;
+      ans = `${P}/${R}`;
+      o = opts(ans, () => `${num}/${den}`, () => `${R}/${P}`, () => `${P + 1}/${R}`);
+      q = `约分：${num}/${den} = ？`;
+      exp = `分子分母同除以最大公因数 ${g * gg}：${num}÷${g * gg}=${P}，${den}÷${g * gg}=${R}，得 ${P}/${R}。`;
+    } else if (type === 1) {
+      // 分式有意义
+      const k = rnd(1, 9);
+      ans = `x ≠ ${k}`;
+      o = opts(ans, () => `x ≠ ${-k}`, () => `x ≥ ${k}`, () => `x ≠ 0`);
+      q = `分式 5/(x − ${k}) 有意义的条件是？`;
+      exp = `分母不为 0：x − ${k} ≠ 0，即 x ≠ ${k}。`;
+    } else if (type === 2) {
+      // 分式值为 0
+      const a = rnd(1, 8);
+      let b = rnd(1, 8); while (b === a) b = rnd(1, 8);
+      ans = `x = ${a}`;
+      o = opts(ans, () => `x = ${b}`, () => `x = 0`, () => `x = ${a} 或 ${b}`);
+      q = `分式 (x − ${a})/(x − ${b}) 的值为 0，则 x = ？`;
+      exp = `值为 0 需分子为 0 且分母不为 0：x = ${a}（此时分母 ${a}−${b}=${a - b} ≠ 0，成立）。`;
+    } else {
+      // 同分母加减
+      const d = pick([2, 3, 5, 7]);
+      const a = rnd(1, 5), b = rnd(1, 5);
+      const s = a + b;
+      ans = `${s}/${d}`;
+      o = opts(ans, () => `${a + b}/${d + d}`, () => `${a * b}/${d}`, () => `${s + 1}/${d}`);
+      q = `${a}/${d} + ${b}/${d} = ？`;
+      exp = `同分母相加，分母不变分子相加：(${a}+${b})/${d} = ${s}/${d}（若可约分需化为最简）。`;
+    }
+    return Q(q, o, "基础", exp, "分式运算", { type, ans: String(ans) });
+  }
+
+  /* ============================================================
+   * 21. 一元二次方程（九上）
+   * ============================================================ */
+  function qQuadratic() {
+    const type = rnd(0, 3);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // 直接开平方 x² = k²
+      const k = rnd(2, 9);
+      ans = `x = ±${k}`;
+      o = opts(ans, () => `x = ${k}`, () => `x = −${k}`, () => `x = ±${k * k}`);
+      q = `方程 x² = ${k * k} 的解是？`;
+      exp = `直接开平方：x = ±√${k * k} = ±${k}。`;
+    } else if (type === 1) {
+      // 因式分解法 (x−r1)(x−r2)=0，保证两根不同且常数项非零
+      const r1 = -rnd(1, 9);
+      const r2 = rnd(1, 9);
+      const b = -(r1 + r2), c = r1 * r2;
+      const bStr = b === 0 ? "" : b === 1 ? "+ x " : b === -1 ? "− x " : b > 0 ? `+ ${b}x ` : `− ${-b}x `;
+      const cStr = c >= 0 ? `+ ${c}` : `− ${-c}`;
+      const sorted = [r1, r2].sort((x, y) => x - y);
+      ans = `x₁=${sorted[0]}, x₂=${sorted[1]}`;
+      o = opts(ans, () => `x₁=${-sorted[0]}, x₂=${-sorted[1]}`, () => `x₁=${sorted[0] + 1}, x₂=${sorted[1]}`, () => `x₁=${b}, x₂=${c}`);
+      q = `方程 x² ${bStr}${cStr} = 0 的解是？`;
+      const fx = r => r >= 0 ? `(x − ${r})` : `(x + ${-r})`;
+      exp = `因式分解：${fx(r1)}${fx(r2)} = 0，两根分别为 ${r1}、${r2}，即 x₁=${sorted[0]}, x₂=${sorted[1]}。`;
+    } else if (type === 2) {
+      // 判别式
+      const b = rnd(1, 6), c = rnd(1, 12);
+      const d = b * b - 4 * c;
+      const pb = b < 0 ? `(${b})` : `${b}`; // 负数加括号避免 −6² 歧义
+      const pc = c < 0 ? `(${c})` : `${c}`;
+      let desc, why;
+      if (d > 0) { desc = "有两个不相等的实数根"; why = `Δ = ${pb}² − 4×${pc} = ${d} > 0`; }
+      else if (d === 0) { desc = "有两个相等的实数根"; why = `Δ = ${pb}² − 4×${pc} = 0`; }
+      else { desc = "没有实数根"; why = `Δ = ${pb}² − 4×${pc} = ${d} < 0`; }
+      ans = desc;
+      o = opts(desc, () => d > 0 ? "有两个相等的实数根" : "有两个不相等的实数根", () => "有一个实数根", () => "根的个数不能确定");
+      q = `不解方程，判断方程 x² + ${b}x + ${c} = 0 的根的情况？`;
+      exp = `看判别式：${why}，所以${desc}。`;
+    } else {
+      // 韦达定理（构造保证 Δ>0 且常数项非零）
+      const r1 = -rnd(1, 8);
+      const r2 = rnd(1, 8);
+      const b = -(r1 + r2), c = r1 * r2;
+      const bStr = b === 0 ? "" : b === 1 ? "+ x " : b === -1 ? "− x " : b > 0 ? `+ ${b}x ` : `− ${-b}x `;
+      const cStr = c >= 0 ? `+ ${c}` : `− ${-c}`;
+      const sn = v => v < 0 ? `${-v}` : (v === 0 ? "0" : `−${v}`); // 显示 −v：v<0 时结果为正
+      const pb = b < 0 ? `(${b})` : `${b}`, pc = c < 0 ? `(${c})` : `${c}`; // 负数加括号避免 −6² 歧义
+      ans = `x₁+x₂=${sn(b)}, x₁x₂=${c}`;
+      o = opts(ans, () => `x₁+x₂=${b}, x₁x₂=${c}`, () => `x₁+x₂=${sn(b)}, x₁x₂=${-c}`, () => `x₁+x₂=${c}, x₁x₂=${sn(b)}`);
+      q = `方程 x² ${bStr}${cStr} = 0 的两根 x₁, x₂，则 x₁+x₂ 与 x₁x₂ 分别是？`;
+      exp = `判别式 Δ = ${pb}² − 4×${pc} = ${b * b - 4 * c} > 0 有两实根；韦达定理：x₁+x₂ = ${sn(b)}，x₁x₂ = ${c}。`;
+    }
+    return Q(q, o, "进阶", exp, "一元二次方程", { type, ans: String(ans) });
+  }
+
+  /* ============================================================
+   * 22. 锐角三角函数（九下）
+   * ============================================================ */
+  function qTrigR() {
+    const type = rnd(0, 2);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // 定义：勾股数组直角三角形
+      const tri = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [7, 24, 25], [20, 21, 29], [9, 40, 41]]);
+      const [opp, adj, hyp] = tri;
+      const f = pick(["sin", "cos", "tan"]);
+      let val;
+      if (f === "sin") val = `${opp}/${hyp}`;
+      else if (f === "cos") val = `${adj}/${hyp}`;
+      else val = `${opp}/${adj}`;
+      ans = val;
+      o = opts(val, () => f === "sin" ? `${adj}/${hyp}` : `${opp}/${hyp}`, () => `${hyp}/${opp}`, () => `${adj}/${opp}`);
+      q = `Rt△ABC 中，∠C=90°，∠A 的对边=${opp}，邻边=${adj}，斜边=${hyp}，则 ${f}A = ？`;
+      const def = f === "sin" ? `对边/斜边 = ${opp}/${hyp}` : f === "cos" ? `邻边/斜边 = ${adj}/${hyp}` : `对边/邻边 = ${opp}/${adj}`;
+      exp = `${f}A = ${def}。`;
+    } else if (type === 1) {
+      // 特殊角
+      const table = [
+        ["sin30°", "1/2"], ["cos60°", "1/2"], ["tan45°", "1"],
+        ["sin45°", "√2/2"], ["cos45°", "√2/2"], ["sin60°", "√3/2"], ["cos30°", "√3/2"],
+        ["tan30°", "√3/3"], ["tan60°", "√3"]
+      ];
+      const [ask, val] = pick(table);
+      ans = val;
+      o = opts(val, () => pick(table.map(x => x[1]).filter(v => v !== val)), () => "2", () => "1/3");
+      q = `${ask} = ？`;
+      exp = `特殊角三角函数值：${ask} = ${val}。`;
+    } else {
+      // 解直角三角形：已知两边求第三边
+      const tri = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [7, 24, 25]]);
+      const hide = rnd(0, 2);
+      const known = tri.filter((_, i) => i !== hide);
+      const target = tri[hide];
+      ans = target;
+      o = opts(target, () => target + 1, () => Math.abs(known[0] - known[1]), () => target + 2);
+      const names = ["两直角边", "一直角边和斜边", "一直角边和斜边"];
+      q = `Rt△ABC 中 ∠C=90°，已知 ${names[hide]} 分别为 ${known[0]} 和 ${known[1]}，第三边长是？`;
+      exp = `勾股定理：a² + b² = c²，设第三边为 x：x² = ${known[0]}² ${hide === 2 ? "−" : "+"} ${known[1]}²，解得 x = ${target}。`;
+    }
+    return Q(q, o, "进阶", exp, "锐角三角函数", { type, ans: String(ans) });
+  }
+
+  /* ============================================================
+   * 23. 数据的代表与波动（统计）
+   * ============================================================ */
+  function qStats2() {
+    const type = rnd(0, 3);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // 平均数（偏差成对构造，保证和为 0，均值为整数）
+      const n = pick([4, 5]);
+      const m = rnd(5, 15);
+      const d = rnd(1, 4), e = rnd(1, 4);
+      const devs = n === 4 ? [d, -d, e, -e] : [d, -d, e, -e, 0];
+      const data = devs.map(x => m + x).sort((a, b) => a - b);
+      ans = m;
+      o = opts(m, () => m + 1, () => m - 1, () => data[0]);
+      q = `数据 ${data.join("、")} 的平均数是？`;
+      exp = `总和 = ${data.reduce((s, x) => s + x, 0)}，平均数 = ${data.reduce((s, x) => s + x, 0)} ÷ ${n} = ${m}。`;
+    } else if (type === 1) {
+      // 中位数（5 个数）
+      const m = rnd(4, 20);
+      let a = rnd(1, m - 1), b = rnd(1, m - 1);
+      let c = m + rnd(1, 9), d = m + rnd(1, 9);
+      const data = [a, b, m, c, d].sort((x, y) => x - y);
+      ans = m;
+      o = opts(m, () => data[2] + 1, () => data[1], () => data[3]);
+      q = `数据 ${data.join("、")} 的中位数是？`;
+      exp = `从小到大排列后第 3 个（中间）是 ${m}，中位数是 ${m}。`;
+    } else if (type === 2) {
+      // 众数
+      const mode = rnd(2, 9);
+      const others = [mode + 1, mode + 2, mode + 3];
+      const data = [mode, mode, mode, ...others].sort(() => Math.random() - 0.5).sort((x, y) => x - y);
+      ans = mode;
+      o = opts(mode, () => mode + 1, () => mode + 2, () => mode * 2);
+      q = `数据 ${data.join("、")} 的众数是？`;
+      const cnt = data.filter(x => x === mode).length;
+      exp = `${mode} 出现了 ${cnt} 次，出现次数最多，众数是 ${mode}。`;
+    } else {
+      // 方差（对称构造：[m−2d, m−d, m, m+d, m+2d] → 方差 = 2d²）
+      const m = rnd(5, 15), d = rnd(1, 4);
+      const data = [m - 2 * d, m - d, m, m + d, m + 2 * d];
+      const v = 2 * d * d;
+      ans = v;
+      o = opts(v, () => v + d, () => d * d, () => 0);
+      q = `数据 ${data.join("、")} 的方差是？`;
+      exp = `平均数 = ${m}；各数偏差平方 = ${(2 * d) ** 2}、${d * d}、0、${d * d}、${(2 * d) ** 2}，方差 = (${(2 * d) ** 2}+${d * d}+0+${d * d}+${(2 * d) ** 2})÷5 = ${4 * d * d + d * d}÷5 = ${v}。`;
+    }
+    return Q(q, o, "基础", exp, "数据的代表与波动", { type, ans: String(ans) });
+  }
+
+  /* ============================================================
+   * 24. 图形的平移、旋转与轴对称（七下）
+   * ============================================================ */
+  function qGTrans2() {
+    const type = rnd(0, 3);
+    let q, ans, o, exp;
+    if (type === 0) {
+      // 平移
+      const x = rnd(-5, 5), y = rnd(-5, 5);
+      const dx = pick([-4, -3, -2, -1, 1, 2, 3, 4]);
+      const dy = pick([-4, -3, -2, -1, 1, 2, 3, 4]);
+      ans = `(${x + dx}, ${y + dy})`;
+      o = opts(ans, () => `(${x - dx}, ${y - dy})`, () => `(${x + dx}, ${y})`, () => `(${x}, ${y + dy})`);
+      const hMove = dx > 0 ? `向右平移 ${dx} 个单位` : `向左平移 ${-dx} 个单位`;
+      const vMove = dy > 0 ? `向上平移 ${dy} 个单位` : `向下平移 ${-dy} 个单位`;
+      q = `点 (${x}, ${y}) ${hMove}，再${vMove}后的坐标是？`;
+      exp = `左右平移改变横坐标（右加左减），上下平移改变纵坐标（上加下减）：(${x}, ${y}) → (${x + dx}, ${y + dy})。`;
+    } else if (type === 1) {
+      // 轴对称
+      const a = rnd(-6, 6), b = rnd(-6, 6);
+      const axis = pick(["x", "y"]);
+      ans = axis === "x" ? `(${a}, ${-b})` : `(${-a}, ${b})`;
+      o = opts(ans, () => axis === "x" ? `(${-a}, ${b})` : `(${a}, ${-b})`, () => `(${-a}, ${-b})`, () => `(${a}, ${b})`);
+      q = `点 (${a}, ${b}) 关于 ${axis === "x" ? "x" : "y"} 轴对称的点的坐标是？`;
+      exp = axis === "x" ? `关于 x 轴对称：横坐标不变，纵坐标变相反数 → (${a}, ${-b})。` : `关于 y 轴对称：纵坐标不变，横坐标变相反数 → (${-a}, ${b})。`;
+    } else if (type === 2) {
+      // 绕原点旋转 180°
+      const a = rnd(-6, 6), b = rnd(-6, 6);
+      ans = `(${-a}, ${-b})`;
+      o = opts(ans, () => `(${a}, ${-b})`, () => `(${-a}, ${b})`, () => `(${a}, ${b})`);
+      q = `点 (${a}, ${b}) 绕原点旋转 180° 后的坐标是？`;
+      exp = `旋转 180°（中心对称）：横纵坐标都变相反数 → (${-a}, ${-b})。`;
+    } else {
+      // 概念
+      const items = [
+        ["平移改变的是图形的？", "位置", ["形状", "大小", "面积"]],
+        ["下列图形变换中，不改变图形形状和大小的是？", "平移、旋转和轴对称", ["只有平移", "只有旋转", "只有轴对称"]],
+        ["图形绕定点旋转时，旋转的三要素不包括？", "旋转的方向和角度以外的面积变化", ["旋转中心", "旋转方向", "旋转角度"]],
+      ];
+      const it = pick(items.slice(0, 2));
+      ans = it[1];
+      o = opts(ans, () => it[2][0], () => it[2][1], () => it[2][2]);
+      q = it[0];
+      exp = `平移、旋转、轴对称都是全等变换，只改变位置（或方向），不改变形状与大小；本题答案是「${ans}」。`;
+    }
+    return Q(q, o, "基础", exp, "平移旋转与轴对称", { type, ans: String(ans) });
+  }
+
+  /* ============================================================
    * 注册到 window.TECHNIQUES
    * ============================================================ */
   const GEN = {
@@ -636,7 +1037,15 @@
     circ: qCircle,
     func1: qFunc1,
     inverse: qInverse,
-    quadfunc: qQuadfunc
+    quadfunc: qQuadfunc,
+    powops: (n) => { const out = []; for (let i = 0; i < (n || 6); i++) out.push(qPowOps()); return out; },
+    factor: (n) => { const out = []; for (let i = 0; i < (n || 6); i++) out.push(qFactor()); return out; },
+    sqrt3: (n) => { const out = []; for (let i = 0; i < (n || 6); i++) out.push(qSqrt3()); return out; },
+    frac: (n) => { const out = []; for (let i = 0; i < (n || 6); i++) out.push(qFrac2()); return out; },
+    quadratic: (n) => { const out = []; for (let i = 0; i < (n || 6); i++) out.push(qQuadratic()); return out; },
+    trigr: (n) => { const out = []; for (let i = 0; i < (n || 6); i++) out.push(qTrigR()); return out; },
+    stats2: (n) => { const out = []; for (let i = 0; i < (n || 6); i++) out.push(qStats2()); return out; },
+    gtrans2: (n) => { const out = []; for (let i = 0; i < (n || 6); i++) out.push(qGTrans2()); return out; }
   };
 
   if (window.TECHNIQUES) {

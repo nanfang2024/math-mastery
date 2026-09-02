@@ -230,9 +230,10 @@ for (const t of TECH) {
       // 小学复算
       const rc = recheck(t.id, q);
       if (rc === false) bad.push("复算不一致: " + (q.q || "").slice(0, 60) + " 标答=" + q.opts[q.ans]);
-      // 启发式：解析中应出现答案值（多数解析以答案收尾）
+      // 启发式：解析中应出现答案值（多数解析以答案收尾）；忽略空格与减号字形差异
+      const norm = s => String(s).replace(/\s+/g, "").replace(/−/g, "-").replace(/–/g, "-").replace(/（/g, "(").replace(/）/g, ")");
       const correct = String(q.opts[q.ans]);
-      if (!(q.explain || "").includes(correct)) warn.push("答案未见于解析: " + (q.q || "").slice(0, 40) + " → " + correct);
+      if (!norm(q.explain || "").includes(norm(correct))) warn.push("答案未见于解析: " + (q.q || "").slice(0, 40) + " → " + correct);
     }
   }
   if (bad.length || warn.length) {
